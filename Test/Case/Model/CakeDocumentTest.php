@@ -1,6 +1,6 @@
 <?php
 
-include_once CakePlugin::path('MongoCake') . 'config' . DS . 'bootstrap.php';
+include_once CakePlugin::path('MongoCake') . 'Config' . DS . 'bootstrap.php';
 
 App::uses('ConnectionManager', 'Model');
 
