@@ -10,9 +10,9 @@ App::uses('DataSource', 'Model/Datasource');
 
 class CakeMongoSource extends DataSource {
 	
-	private $__configuration;
-	private $__connection;
-	private $__documentManager;
+	private $configuration;
+	private $connection;
+	private $documentManager;
 
 	public function __construct($config = array(), $autoConnect = true) {
 		$this->_baseConfig = array(
@@ -35,9 +35,9 @@ class CakeMongoSource extends DataSource {
 		$reader->setDefaultAnnotationNamespace('Doctrine\ODM\MongoDB\Mapping\\');
 		$configuration->setMetadataDriverImpl(new AnnotationDriver($reader, App::path('Model')));
 
-		$this->__configuration = $configuration;
-		$this->__connection = new Connection($server);
-		$this->__documentManager = DocumentManager::create($this->__connection, $configuration);
+		$this->configuration = $configuration;
+		$this->connection = new Connection($server);
+		$this->documentManager = DocumentManager::create($this->connection, $configuration);
 		
 		if ($autoConnect) {
 			$this->connect();
@@ -45,15 +45,15 @@ class CakeMongoSource extends DataSource {
 	}
 
 	public function getConnection() {
-		return $this->__connection;
+		return $this->connection;
 	}
 
 	public function getDocumentManager() {
-		return $this->__documentManager;
+		return $this->documentManager;
 	}
 
 	public function getConfiguration() {
-		return $this->__configuration;
+		return $this->configuration;
 	}
 
 	public function getSchemaManager() {
@@ -61,11 +61,11 @@ class CakeMongoSource extends DataSource {
 	}
 
 	public function connect() {
-		return $this->__connection->connect();
+		return $this->connection->connect();
 	}
 
 	public function isConnected() {
-		return $this->__connection->isConnected();
+		return $this->connection->isConnected();
 	}
 
 /**
