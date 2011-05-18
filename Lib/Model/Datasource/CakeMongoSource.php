@@ -3,7 +3,8 @@ use Doctrine\Common\Annotations\AnnotationReader,
 	Doctrine\ODM\MongoDB\DocumentManager,
 	Doctrine\MongoDB\Connection,
 	Doctrine\ODM\MongoDB\Configuration,
-	Doctrine\ODM\MongoDB\Mapping\Driver\AnnotationDriver;
+	Doctrine\ODM\MongoDB\Mapping\Driver\AnnotationDriver,
+	Doctrine\ODM\MongoDB\SchemaManager;
 
 App::uses('DataSource', 'Model/Datasource');
 
@@ -55,11 +56,41 @@ class CakeMongoSource extends DataSource {
 		return $this->__configuration;
 	}
 
+	public function getSchemaManager() {
+		return $this->getDocumentManager()->getSchemaManager();
+	}
+
 	public function connect() {
 		return $this->__connection->connect();
 	}
 
 	public function isConnected() {
 		return $this->__connection->isConnected();
+	}
+
+/**
+ * Get list of collection names
+ *
+ * @return array
+ */
+	public function listSources() {
+		return array_keys($this->getDocumentManager()->getDocumentCollections());
+	}
+
+/**
+ * Drop a Collection
+ *
+ * @param CakeSchema $schema Schema object
+ * @param string $collection Collection name
+ * @return void
+ *
+ * @todo We'll need to override CakeTestFixture to avoid $db->execute(...) but the implementation here is sound.
+ */
+	public function dropSchema(CakeSchema $schema, $collection = null) {
+		foreach ($schema->tables as $curTable => $columns) {
+			if (!$collection || $collection == $curTable) {
+				$this->getSchemaManager()->dropDocumentCollection($collection);
+			}
+		}
 	}
 }
