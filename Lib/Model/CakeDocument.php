@@ -2,7 +2,7 @@
 App::uses('ConnectionManager', 'Model');
 
 class CakeDocument implements ArrayAccess {
-	public $useDbConfig = 'mongoDefault';
+	public $useDbConfig = 'default';
 	protected $_schema = array();
 
 	public function __get($property) {
