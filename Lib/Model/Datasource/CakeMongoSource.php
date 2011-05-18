@@ -5,22 +5,24 @@ use Doctrine\Common\Annotations\AnnotationReader,
 	Doctrine\ODM\MongoDB\Configuration,
 	Doctrine\ODM\MongoDB\Mapping\Driver\AnnotationDriver;
 
-class CakeMongoSource {
-	
-	public $config;
-	private $configuration;
-	private $connection;
-	private $documentManager;
+App::uses('DataSource', 'Model/Datasource');
 
-	public function __construct($config = array()) {
-		$this->config = $config;
-		$proxyDir = TMP . 'cache';
-		$proxyNamespace = 'Proxies';
-		$hydratorDir = TMP . 'cache';
-		$hydratorNamespace = 'Hydrators';
-		$server = null;
-		
-		extract($config, EXTR_OVERWRITE);
+class CakeMongoSource extends DataSource {
+	
+	private $__configuration;
+	private $__connection;
+	private $__documentManager;
+
+	public function __construct($config = array(), $autoConnect = true) {
+		$this->_baseConfig = array(
+			'proxyDir' => TMP . 'cache',
+			'proxyNamespace' =>'Proxies',
+			'hydratorDir' => TMP . 'cache',
+			'hydratorNamespace' => 'Hydrators',
+			'server' => 'localhost',
+		);
+		parent::__construct($config);
+		extract($this->config, EXTR_OVERWRITE);
 
 		$configuration = new Configuration();
 		$configuration->setProxyDir($proxyDir);
@@ -32,22 +34,32 @@ class CakeMongoSource {
 		$reader->setDefaultAnnotationNamespace('Doctrine\ODM\MongoDB\Mapping\\');
 		$configuration->setMetadataDriverImpl(new AnnotationDriver($reader, App::path('Model')));
 
-		$this->configuration = $configuration;
-		$this->connection = new Connection($server);
-		$this->documentManager = DocumentManager::create($this->connection, $configuration);
+		$this->__configuration = $configuration;
+		$this->__connection = new Connection($server);
+		$this->__documentManager = DocumentManager::create($this->__connection, $configuration);
+		
+		if ($autoConnect) {
+			$this->connect();
+		}
 	}
 
 	public function getConnection() {
-		return $this->connection;
+		return $this->__connection;
 	}
 
 	public function getDocumentManager() {
-		return $this->documentManager;
+		return $this->__documentManager;
 	}
 
 	public function getConfiguration() {
-		return $this->configuration;
+		return $this->__configuration;
 	}
 
-	
+	public function connect() {
+		return $this->__connection->connect();
+	}
+
+	public function isConnected() {
+		return $this->__connection->isConnected();
+	}
 }
