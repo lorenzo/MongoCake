@@ -8,7 +8,7 @@ class CakeDocumentTest extends CakeTestCase {
 	
 	public function setUp() {
 		App::build(array(
-			'Model' => CakePlugin::path('MongoCake') . 'tests' . DS . 'Fixture' . DS
+			'Model' => CakePlugin::path('MongoCake') . 'Test' . DS . 'Fixture' . DS
 		), true);
 		$this->User = ClassRegistry::init('User');
 		ConnectionManager::create('mongoDefault', array(
