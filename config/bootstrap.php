@@ -2,7 +2,7 @@
 
 use Doctrine\Common\ClassLoader;
 
-$mongoODMLocation = dirname(__DIR__) . DS . 'vendors' . DS . 'mongodb_odm' . DS;
+$mongoODMLocation = dirname(__DIR__) . DS . 'Vendor' . DS . 'mongodb_odm' . DS;
 require  $mongoODMLocation . 'lib/vendor/doctrine-common/lib/Doctrine/Common/ClassLoader.php';
 
 // ODM Classes
