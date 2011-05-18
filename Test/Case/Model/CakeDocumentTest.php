@@ -10,10 +10,11 @@ class CakeDocumentTest extends CakeTestCase {
 		App::build(array(
 			'Model' => CakePlugin::path('MongoCake') . 'Test' . DS . 'Fixture' . DS
 		), true);
-		$this->User = ClassRegistry::init('User');
-		ConnectionManager::create('mongoDefault', array(
-			'datasource' => 'MongoCake.CakeMongoSource'
+		ConnectionManager::create('testMongo', array(
+			'datasource' => 'MongoCake.CakeMongoSource',
 		));
+		$this->User = ClassRegistry::init('User');
+		$this->User->useDbConfig = 'testMongo';
 	}
 
 	public function tearDown() {
@@ -24,7 +25,7 @@ class CakeDocumentTest extends CakeTestCase {
 		$this->User->getDocumentManager()->flush();
 		App::build();
 		ClassRegistry::flush();
-		ConnectionManager::drop('mongoDefault');
+		ConnectionManager::drop('testMongo');
 		
 	}
 
