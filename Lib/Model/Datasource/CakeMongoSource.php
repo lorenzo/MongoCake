@@ -44,6 +44,7 @@ class CakeMongoSource extends DataSource {
 			->addEventListener(
 				array(
 					Events::prePersist,
+					Events::preUpdate,
 					Events::preRemove,
 					Events::postPersist,
 					Events::postUpdate,
@@ -91,6 +92,16 @@ class CakeMongoSource extends DataSource {
 
 	public function postPersist(\Doctrine\ODM\MongoDB\Event\LifecycleEventArgs $eventArgs) {
 		$eventArgs->getDocument()->afterSave(false);
+	}
+
+	public function preUpdate(\Doctrine\ODM\MongoDB\Event\LifecycleEventArgs $eventArgs) {
+		$document = $eventArgs->getDocument();
+		$dm = $eventArgs->getDocumentManager();
+
+		$continue = $document->beforeSave(true);
+		if (!$continue) {
+			throw new OperationCancelledException();
+		}
 	}
 
 	public function postUpdate(\Doctrine\ODM\MongoDB\Event\LifecycleEventArgs $eventArgs) {

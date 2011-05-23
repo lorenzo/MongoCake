@@ -28,6 +28,13 @@ class User extends CakeDocument {
 		$this->phonenumbers = new \Doctrine\Common\Collections\ArrayCollection();
 	}
 
+	public function beforeSave($exists) {
+		if ($exists && $this->getUsername() == 'jose sucks') {
+			return false;
+		}
+		return true;
+	}
+
     public function getId()
     {
         return $this->id;

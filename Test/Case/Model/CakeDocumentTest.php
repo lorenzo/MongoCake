@@ -82,6 +82,11 @@ class CakeDocumentTest extends CakeTestCase {
 		$this->assertFalse($result);
 	}
 
+/**
+ * Tests that it is possible to cancel an update operation on beforeSave()
+ *
+ * @return void
+ */
 	public function testBeforeUpdate() {
 		$u = new User();
 		$u->setUsername('larry');
@@ -89,8 +94,20 @@ class CakeDocumentTest extends CakeTestCase {
 		$u->flush();
 
 		$user = $this->User->find($u->getId());
-		$user->username = 'jose';
+		// the callback is configured to return false if the name is jose sucks
+		$user->setUsername('jose sucks');
 		$user->save();
+		$user->flush();
+
+		$user = $this->User->find($u->getId());
+		$this->assertEquals($user->getUsername(), 'larry');
+		
+		$user->setUsername('jose rules');
+		$user->save();
+		$user->flush();
+
+		$user = $this->User->find($u->getId());
+		$this->assertEquals($user->getUsername(), 'jose rules');
 	}
 
 /**

@@ -117,21 +117,23 @@ class CakeDocument implements ArrayAccess {
 
 	public function afterDelete() {}
 
+/**
+ * Persists a document in the datastore. Keep in mind that issuing flush() is needed after this method
+ *
+ * @return boolean success
+ */
 	public function save() {
-		// We trigger beforeSave for existing objects at this point so we don't have to calculate changes twice
-		 if ($this->exists()) {
-			$continue = $this->beforeSave(true);
-			if (!$continue) {
-				return false;
-			}
+		$uow = $this->getDocumentManager()->getUnitOfWork();
+		$documentState = $uow->getDocumentState($this);
+		if ($documentState === UnitOfWork::STATE_DETACHED) {
+			$uow->registerManaged($this, $this->getId(), $uow->getOriginalDocumentData($this));
 		}
-
 		try {
 			$this->getDocumentManager()->persist($this);
 		} catch (OperationCancelledException $e) {
+			$this->getDocumentManager()->getUnitOfWork()->detach($this);
 			return false;
 		}
-
 		return true;
 	}
 
