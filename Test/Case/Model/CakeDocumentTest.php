@@ -59,4 +59,54 @@ class CakeDocumentTest extends CakeTestCase {
 		$user->delete();
 		$this->User->flush();
 	}
+
+	public function testBeforeCreate() {
+		$user = $this->_mockDocument('User', array('beforeSave'));
+		$user->expects($this->once())
+			->method('beforeSave')
+			->with(false)
+			->will($this->returnValue(true));
+
+		$user->username = 'larry';
+		$result = $user->save();
+		$this->assertTrue($result);
+
+		$user = $this->_mockDocument('User', array('beforeSave'));
+		$user->expects($this->once())
+			->method('beforeSave')
+			->with(false)
+			->will($this->returnValue(false));
+
+		$user->setUsername('larry');
+		$result = $user->save();
+		$this->assertFalse($result);
+	}
+
+	public function testBeforeUpdate() {
+		$u = new User();
+		$u->setUsername('larry');
+		$u->save();
+		$u->flush();
+
+		$user = $this->User->find($u->getId());
+		$user->username = 'jose';
+		$user->save();
+	}
+
+/**
+ * Returns a mocked document class, and sets the metadata in the driver for the new document
+ *
+ * @param $class The name of the Document to mock
+ * @param $methods list of methods to be mock, if left empty all methods will be mocked
+ * @param $setMetaData if true it will set the driver metadata for the class by copying it form the original class
+ */
+	protected function _mockDocument($class, $methods = array(), $setMetaData = true) {
+		$mock = $this->getMock($class, $methods);
+		if ($setMetaData) {
+			$mf = $mock->getDocumentManager()->getMetadataFactory();
+			$mf->setMetadataFor(get_class($mock), $mf->getMetadataFor($class));
+		}
+		return $mock;
+	}
+
 }

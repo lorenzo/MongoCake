@@ -1,4 +1,7 @@
 <?php
+
+use Doctrine\ODM\MongoDB\UnitOfWork;
+
 App::uses('ConnectionManager', 'Model');
 
 class CakeDocument implements ArrayAccess {
@@ -96,8 +99,40 @@ class CakeDocument implements ArrayAccess {
 		return $this->_schema;
 	}
 
+	public function exists() {
+		$uow = $this->getDocumentManager()->getUnitOfWork();
+		$documentState = $uow->getDocumentState($this);
+		return $documentState === UnitOfWork::STATE_MANAGED || $documentState ===  UnitOfWork::STATE_DETACHED;
+	}
+
+	public function beforeSave($exists) {
+		return true;
+	}
+
+	public function afterSave($exists) {}
+
+	public function beforeDelete() {
+		return true;
+	}
+
+	public function afterDelete() {}
+
 	public function save() {
-		return $this->getDocumentManager()->persist($this);
+		// We trigger beforeSave for existing objects at this point so we don't have to calculate changes twice
+		 if ($this->exists()) {
+			$continue = $this->beforeSave(true);
+			if (!$continue) {
+				return false;
+			}
+		}
+
+		try {
+			$this->getDocumentManager()->persist($this);
+		} catch (OperationCancelledException $e) {
+			return false;
+		}
+
+		return true;
 	}
 
 	public function delete() {
@@ -106,5 +141,9 @@ class CakeDocument implements ArrayAccess {
 
 	public function find($type, $options = array()) {
 		$repository = $this->getRepository();
+		if (!in_array($type, array('all', 'first'))) {
+			return $repository->find($type);
+		}
+		$options += array('conditions' => array());
 	}
 }

@@ -4,7 +4,8 @@ use Doctrine\Common\Annotations\AnnotationReader,
 	Doctrine\MongoDB\Connection,
 	Doctrine\ODM\MongoDB\Configuration,
 	Doctrine\ODM\MongoDB\Mapping\Driver\AnnotationDriver,
-	Doctrine\ODM\MongoDB\SchemaManager;
+	Doctrine\ODM\MongoDB\SchemaManager,
+	Doctrine\ODM\MongoDB\Events;
 
 App::uses('DataSource', 'Model/Datasource');
 
@@ -38,7 +39,19 @@ class CakeMongoSource extends DataSource {
 		$this->configuration = $configuration;
 		$this->connection = new Connection($server);
 		$this->documentManager = DocumentManager::create($this->connection, $configuration);
-		
+
+		$this->documentManager->getEventManager()
+			->addEventListener(
+				array(
+					Events::prePersist,
+					Events::preRemove,
+					Events::postPersist,
+					Events::postUpdate,
+					Events::postRemove,
+				),
+				$this
+			);
+
 		if ($autoConnect) {
 			$this->connect();
 		}
@@ -68,6 +81,33 @@ class CakeMongoSource extends DataSource {
 		return $this->connection->isConnected();
 	}
 
+
+	public function prePersist(\Doctrine\ODM\MongoDB\Event\LifecycleEventArgs $eventArgs) {
+		$continue = $eventArgs->getDocument()->beforeSave(false);
+		if (!$continue) {
+			throw new OperationCancelledException();
+		}
+	}
+
+	public function postPersist(\Doctrine\ODM\MongoDB\Event\LifecycleEventArgs $eventArgs) {
+		$eventArgs->getDocument()->afterSave(false);
+	}
+
+	public function postUpdate(\Doctrine\ODM\MongoDB\Event\LifecycleEventArgs $eventArgs) {
+		$eventArgs->getDocument()->afterSave(true);
+	}
+
+	public function preRemove(\Doctrine\ODM\MongoDB\Event\LifecycleEventArgs $eventArgs) {
+		$continue = $eventArgs->getDocument()->beforeDelete();
+		if (!$continue) {
+			throw new OperationCancelledException();
+		}
+	}
+
+	public function postRemove(\Doctrine\ODM\MongoDB\Event\LifecycleEventArgs $eventArgs) {
+		$eventArgs->getDocument()->afterDelete();
+	}
+
 /**
  * Get list of collection names
  *
@@ -94,3 +134,9 @@ class CakeMongoSource extends DataSource {
 		}
 	}
 }
+
+/**
+ * Exception to be thrown if a save operation is cancelled
+ *
+ */
+class OperationCancelledException extends Exception {}
