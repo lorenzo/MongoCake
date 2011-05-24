@@ -19,6 +19,9 @@ class CakeDocumentTest extends CakeTestCase {
 	}
 
 	public function tearDown() {
+		ConnectionManager::getDataSource('testMongo')
+			->getSchemaManager()
+			->dropDocumentCollection('User');
 		App::build();
 		ClassRegistry::flush();
 		ConnectionManager::drop('testMongo');
@@ -55,6 +58,40 @@ class CakeDocumentTest extends CakeTestCase {
 		$this->User->flush();
 	}
 
+/**
+ * Tests that it is possible to cancel an update operation on beforeSave() and change
+ * the data
+ *
+ * @return void
+ */
+	public function testBeforeUpdate() {
+		$u = new User();
+		$u->setUsername('larry');
+		$u->save();
+		$u->flush();
+
+		// the callback is configured to return false if the name is jose sucks
+		$u->setUsername('jose sucks');
+		$u->save();
+		$u->flush();
+
+		$user = $this->User->find($u->getId());
+		$this->assertEquals($user->getUsername(), 'larry');
+
+		$u->setUsername('jose rules');
+		$u->save();
+		$u->flush();
+
+		//The beforeSave callback should have changed the name
+		$this->assertEquals($u->getUsername(), 'jose rules, it is true');
+		$user = $this->User->find($u->getId());
+	}
+
+/**
+ * Tests that beforeSave() is called for new persisted objects
+ *
+ * @return void
+ */
 	public function testBeforeCreate() {
 		$user = $this->_mockDocument('User', array('beforeSave'));
 		$user->expects($this->once())
@@ -77,33 +114,62 @@ class CakeDocumentTest extends CakeTestCase {
 		$this->assertFalse($result);
 	}
 
+
 /**
- * Tests that it is possible to cancel an update operation on beforeSave() and change
- * the data
+ * Tests that afterSave method is invoked after flushing the unit of work
  *
  * @return void
  */
-	public function testBeforeUpdate() {
-		$u = new User();
-		$u->setUsername('larry');
-		$u->save();
-		$u->flush();
+	public function testAfterSave() {
+		$user = $this->_mockDocument('User', array('afterSave'));
+		$user->expects($this->at(0))->method('afterSave')->with(false);
+		$user->expects($this->at(1))->method('afterSave')->with(true);
+		$user->setUsername('graham');
+		$user->save();
+		$user->flush();
 
-		// the callback is configured to return false if the name is jose sucks
-		$u->setUsername('jose sucks');
-		$u->save();
-		$u->flush();
+		$user->setUsername('andy');
+		$user->setPassword('1234');
+		$user->save();
+		$user->flush();
+	}
 
-		$user = $this->User->find($u->getId());
-		$this->assertEquals($user->getUsername(), 'larry');
-		
-		$u->setUsername('jose rules');
-		$u->save();
-		$u->flush();
+/**
+ * Tests that it is possible to cancel a delete operation in the beforeDelete callback
+ *
+ * @return void
+ */
+	public function testBeforeDelete() {
+		$user = $this->_mockDocument('User', array('beforeDelete'));
+		$user->expects($this->at(0))->method('beforeDelete')->will($this->returnValue(false));
+		$user->expects($this->at(1))->method('beforeDelete')->will($this->returnValue(true));
+		$user->setUsername('graham');
+		$user->save();
+		$user->flush();
 
-		//The beforeSave callback should have changed the name
-		$this->assertEquals($u->getUsername(), 'jose rules, it is true');
-		$user = $this->User->find($u->getId());
+		$user->delete();
+		$user->flush();
+
+		$user->delete();
+		$user->flush();
+	
+		$this->assertNull($this->User->find($user->getId()));
+	}
+
+/**
+ * Tests that afterDelete callback is reached
+ *
+ * @return void
+ */
+	public function testAfterDelete() {
+		$user = $this->_mockDocument('User', array('afterDelete'));
+		$user->expects($this->once())->method('afterDelete');
+		$user->setUsername('graham');
+		$user->save();
+		$user->flush();
+		$user->delete();
+		$user->flush();
+		$this->assertNull($this->User->find($user->getId()));
 	}
 
 /**
@@ -113,11 +179,19 @@ class CakeDocumentTest extends CakeTestCase {
  * @param $methods list of methods to be mock, if left empty all methods will be mocked
  * @param $setMetaData if true it will set the driver metadata for the class by copying it form the original class
  */
-	protected function _mockDocument($class, $methods = array(), $setMetaData = true) {
+	protected function _mockDocument($class, $methods = array(), $setMetaData = true, $id = null) {
 		$mock = $this->getMock($class, $methods);
 		if ($setMetaData) {
 			$mf = $mock->getDocumentManager()->getMetadataFactory();
-			$mf->setMetadataFor(get_class($mock), $mf->getMetadataFor($class));
+			$cm = $mf->getMetadataFor($class);
+			$cm->rootDocumentName = $cm->name = get_class($mock);
+			$mf->setMetadataFor(get_class($mock), $cm);
+
+			//Not fully working yet
+			if ($id) {
+				$cm->setIdentifierValue($mock, $id);
+				$mock->getDocumentManager()->getUnitOfWork()->registerManaged($mock, $id, array());
+			}
 		}
 		return $mock;
 	}

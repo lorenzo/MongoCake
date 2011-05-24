@@ -84,7 +84,6 @@ class CakeMongoSource extends DataSource {
 		return $this->connection->isConnected();
 	}
 
-
 	public function prePersist(\Doctrine\ODM\MongoDB\Event\LifecycleEventArgs $eventArgs) {
 		$continue = $eventArgs->getDocument()->beforeSave(false);
 		if (!$continue) {

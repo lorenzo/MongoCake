@@ -121,7 +121,8 @@ class CakeDocument implements ArrayAccess {
 		return true;
 	}
 
-	public function afterSave($exists) {}
+
+	public function afterSave($isUpdate) {}
 
 	public function beforeDelete() {
 		return true;
@@ -144,7 +145,12 @@ class CakeDocument implements ArrayAccess {
 	}
 
 	public function delete() {
-		return $this->getDocumentManager()->remove($this);
+		try {
+			$this->getDocumentManager()->remove($this);
+			return true;
+		} catch(OperationCancelledException $e) {
+			return false;
+		}
 	}
 
 	public function find($type, $options = array()) {
