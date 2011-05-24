@@ -22,6 +22,7 @@ class CakeMongoSource extends DataSource {
 			'hydratorDir' => TMP . 'cache',
 			'hydratorNamespace' => 'Hydrators',
 			'server' => 'localhost',
+			'database' => 'cake'
 		);
 		parent::__construct($config);
 		extract($this->config, EXTR_OVERWRITE);
@@ -31,6 +32,7 @@ class CakeMongoSource extends DataSource {
 		$configuration->setProxyNamespace($proxyNamespace);
 		$configuration->setHydratorDir($hydratorDir);
 		$configuration->setHydratorNamespace($hydratorNamespace);
+		$configuration->setDefaultDB($database);
 
 		$reader = new AnnotationReader();
 		$reader->setDefaultAnnotationNamespace('Doctrine\ODM\MongoDB\Mapping\\');
