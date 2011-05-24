@@ -84,7 +84,9 @@ class CakeDocument implements ArrayAccess {
 	}
 
 	public function flush() {
-		return $this->getDocumentManager()->flush();
+		try {
+			$this->getDocumentManager()->flush();
+		} catch (OperationCancelledException $e) {}
 	}
 
 	public function schema() {
@@ -105,7 +107,17 @@ class CakeDocument implements ArrayAccess {
 		return $documentState === UnitOfWork::STATE_MANAGED || $documentState ===  UnitOfWork::STATE_DETACHED;
 	}
 
-	public function beforeSave($exists) {
+/**
+ * This callback is fired just before the data is going to be committed into the persistent storage.
+ * Keep in mind this means just after the flush() call, and not inside the save() method, so don't
+ * rely on any behavior that cancels a save at this point unless you know what you are doing.
+ * 
+ * Returning false will cancel the persist operation.
+ *
+ * @param boolean $isUpdate whether this operation is a create or create operation
+ * @return boolean true to continue saving, false to cancel
+ */
+	public function beforeSave($isUpdate) {
 		return true;
 	}
 
@@ -123,15 +135,9 @@ class CakeDocument implements ArrayAccess {
  * @return boolean success
  */
 	public function save() {
-		$uow = $this->getDocumentManager()->getUnitOfWork();
-		$documentState = $uow->getDocumentState($this);
-		if ($documentState === UnitOfWork::STATE_DETACHED) {
-			$uow->registerManaged($this, $this->getId(), $uow->getOriginalDocumentData($this));
-		}
 		try {
 			$this->getDocumentManager()->persist($this);
 		} catch (OperationCancelledException $e) {
-			$this->getDocumentManager()->getUnitOfWork()->detach($this);
 			return false;
 		}
 		return true;

@@ -12,21 +12,16 @@ class CakeDocumentTest extends CakeTestCase {
 		), true);
 		ConnectionManager::create('testMongo', array(
 			'datasource' => 'MongoCake.CakeMongoSource',
+			'database' => 'test'
 		));
 		$this->User = ClassRegistry::init('User');
 		$this->User->useDbConfig = 'testMongo';
 	}
 
 	public function tearDown() {
-		$users = $this->User->getDocumentManager()->getRepository('User')->findAll();
-		foreach ($users as $user) {
-			$user->delete();
-		}
-		$this->User->getDocumentManager()->flush();
 		App::build();
 		ClassRegistry::flush();
 		ConnectionManager::drop('testMongo');
-		
 	}
 
 	public function testLoading() {
@@ -83,7 +78,8 @@ class CakeDocumentTest extends CakeTestCase {
 	}
 
 /**
- * Tests that it is possible to cancel an update operation on beforeSave()
+ * Tests that it is possible to cancel an update operation on beforeSave() and change
+ * the data
  *
  * @return void
  */
@@ -93,21 +89,21 @@ class CakeDocumentTest extends CakeTestCase {
 		$u->save();
 		$u->flush();
 
-		$user = $this->User->find($u->getId());
 		// the callback is configured to return false if the name is jose sucks
-		$user->setUsername('jose sucks');
-		$user->save();
-		$user->flush();
+		$u->setUsername('jose sucks');
+		$u->save();
+		$u->flush();
 
 		$user = $this->User->find($u->getId());
 		$this->assertEquals($user->getUsername(), 'larry');
 		
-		$user->setUsername('jose rules');
-		$user->save();
-		$user->flush();
+		$u->setUsername('jose rules');
+		$u->save();
+		$u->flush();
 
+		//The beforeSave callback should have changed the name
+		$this->assertEquals($u->getUsername(), 'jose rules, it is true');
 		$user = $this->User->find($u->getId());
-		$this->assertEquals($user->getUsername(), 'jose rules');
 	}
 
 /**

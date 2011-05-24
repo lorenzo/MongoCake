@@ -32,6 +32,9 @@ class User extends CakeDocument {
 		if ($exists && $this->getUsername() == 'jose sucks') {
 			return false;
 		}
+		if ($exists && $this->getUsername() == 'jose rules') {
+			$this->username .= ', it is true';
+		}
 		return true;
 	}
 

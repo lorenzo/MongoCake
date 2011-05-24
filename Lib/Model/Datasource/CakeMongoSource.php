@@ -104,6 +104,10 @@ class CakeMongoSource extends DataSource {
 		if (!$continue) {
 			throw new OperationCancelledException();
 		}
+
+		$uow = $dm->getUnitOfWork();
+		$class = $dm->getClassMetaData(get_class($document));
+		$uow->recomputeSingleDocumentChangeSet($class, $document);
 	}
 
 	public function postUpdate(\Doctrine\ODM\MongoDB\Event\LifecycleEventArgs $eventArgs) {
