@@ -24,6 +24,8 @@ class User extends CakeDocument {
     /** @EmbedMany(targetDocument="PhoneNumber") */
     private $phonenumbers;
 
+	public $useDbConfig = 'testMongo';
+
 	public function __construct() {
 		$this->phonenumbers = new \Doctrine\Common\Collections\ArrayCollection();
 	}

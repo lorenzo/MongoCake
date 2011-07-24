@@ -9,13 +9,12 @@ class CakeDocumentTest extends CakeTestCase {
 	public function setUp() {
 		App::build(array(
 			'Model' => CakePlugin::path('MongoCake') . 'Test' . DS . 'Fixture' . DS
-		), true);
+		), APP::RESET);
 		ConnectionManager::create('testMongo', array(
 			'datasource' => 'MongoCake.CakeMongoSource',
 			'database' => 'test'
 		));
 		$this->User = ClassRegistry::init('User');
-		$this->User->useDbConfig = 'testMongo';
 	}
 
 	public function tearDown() {
@@ -65,7 +64,7 @@ class CakeDocumentTest extends CakeTestCase {
  * @return void
  */
 	public function testBeforeUpdate() {
-		$u = new User();
+		$u = $this->User;
 		$u->setUsername('larry');
 		$u->save();
 		$u->flush();
@@ -75,8 +74,10 @@ class CakeDocumentTest extends CakeTestCase {
 		$u->save();
 		$u->flush();
 
-		$user = $this->User->find($u->getId());
-		$this->assertEquals($user->getUsername(), 'larry');
+		$users = $u->getRepository()->findBy(array('username' => 'larry'));
+		$users->next();
+		$user = $users->current();
+		$this->assertEquals($user->getId(), $u->getId());
 
 		$u->setUsername('jose rules');
 		$u->save();

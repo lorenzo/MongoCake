@@ -5,7 +5,19 @@ use Doctrine\ODM\MongoDB\UnitOfWork;
 App::uses('ConnectionManager', 'Model');
 
 class CakeDocument implements ArrayAccess {
+
+/**
+ * Specifies which connection name to use for this instance
+ *
+ * @var string
+ */
 	public $useDbConfig = 'default';
+
+/**
+ * Holds the schema description for this document
+ *
+ * @var ArrayObject
+ */
 	protected $_schema = array();
 
 	public function __get($property) {

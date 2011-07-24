@@ -6,6 +6,8 @@ class Phonenumber extends CakeDocument {
     /** @String */
     private $phonenumber;
 
+	public $useDbConfig = 'testMongo';
+
     public function __construct($phonenumber = null)
     {
         $this->phonenumber = $phonenumber;

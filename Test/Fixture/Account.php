@@ -9,6 +9,8 @@ class Account extends CakeDocument {
     /** @String */
     private $name;
 
+	public $useDbConfig = 'testMongo';
+
     public function __construct($name)
     {
         $this->name = $name;
