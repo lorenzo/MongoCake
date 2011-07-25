@@ -3,6 +3,7 @@
 use Doctrine\ODM\MongoDB\UnitOfWork;
 
 App::uses('ConnectionManager', 'Model');
+App::uses('Validation', 'Utility');
 
 class CakeDocument implements ArrayAccess {
 
@@ -12,6 +13,35 @@ class CakeDocument implements ArrayAccess {
  * @var string
  */
 	public $useDbConfig = 'default';
+
+/**
+ * Set of validation rules for this document
+ *
+ * @var array
+ */
+	public $validate = array();
+
+/**
+ * Holds the list of validation errors for each property of this document
+ *
+ * @var array
+ */
+	public $validationErrors = array();
+
+/**
+ * Name of the validation string domain to use when translating validation errors.
+ *
+ * @var string
+ * @access public
+ */
+	public $validationDomain = null;
+
+/**
+ * Whitelist of fields allowed to be saved.
+ *
+ * @var array
+ */
+	public $whitelist = array();
 
 /**
  * Holds the schema description for this document
@@ -141,6 +171,181 @@ class CakeDocument implements ArrayAccess {
 	}
 
 	public function afterDelete() {}
+
+/**
+ * Called during validation operations, before validation. Please note that custom
+ * validation rules can be defined in $validate.
+ *
+ * @return boolean True if validate operation should continue, false to abort
+ * @param $options array Options passed from model::save(), see $options of model::save().
+ */
+	public function beforeValidate($options = array()) {
+		return true;
+	}
+
+/**
+ * Returns true if all fields pass validation.
+ *
+ * Will validate the currently set data.  Use Model::set() or Model::create() to set the active data.
+ *
+ * @param array $options An optional array of custom options to be made available in the beforeValidate callback
+ * @return boolean True if there are no errors
+ * @link http://book.cakephp.org/view/1182/Validating-Data-from-the-Controller
+ */
+	public function validates($options = array()) {
+		$errors = $this->invalidFields($options);
+		return empty($errors);
+	}
+
+/**
+ * Returns an array of fields that have failed validation. On the current model.
+ *
+ * @param string $options An optional array of custom options to be made available in the beforeValidate callback
+ * @return array Array of invalid fields
+ * @link http://book.cakephp.org/view/1182/Validating-Data-from-the-Controller
+ */
+	public function invalidFields($options = array()) {
+		//TODO: Add behaviors support
+		if ($this->beforeValidate($options) === false) {
+			return false;
+		}
+
+		if (!isset($this->validate) || empty($this->validate)) {
+			return $this->validationErrors;
+		}
+
+		$exists = $this->exists();
+		$_validate = $this->validate;
+		$whitelist = $this->whitelist;
+		$methods = get_class_methods($this);
+
+		if (!empty($options['fieldList'])) {
+			$whitelist = $options['fieldList'];
+		}
+
+		if (!empty($whitelist)) {
+			$validate = array();
+			foreach ((array)$whitelist as $f) {
+				if (!empty($this->validate[$f])) {
+					$validate[$f] = $this->validate[$f];
+				}
+			}
+			$this->validate = $validate;
+		}
+
+		foreach ($this->validate as $fieldName => $ruleSet) {
+			if (!is_array($ruleSet) || (is_array($ruleSet) && isset($ruleSet['rule']))) {
+				$ruleSet = array($ruleSet);
+			}
+			$default = array(
+				'allowEmpty' => null,
+				'required' => null,
+				'rule' => 'blank',
+				'last' => true,
+				'on' => null
+			);
+
+			foreach ($ruleSet as $index => $validator) {
+				if (!is_array($validator)) {
+					$validator = array('rule' => $validator);
+				}
+				$validator = array_merge($default, $validator);
+
+				$validationDomain = $this->validationDomain;
+				if (empty($validationDomain)) {
+					$validationDomain = 'default';
+				}
+				if (isset($validator['message'])) {
+					$message = $validator['message'];
+				} else {
+					$message = __d('cake_dev', 'This field cannot be left blank');
+				}
+
+				$value = $this->{$fieldName};
+				if (
+					empty($validator['on']) || ($validator['on'] == 'create' &&
+					!$exists) || ($validator['on'] == 'update' && $exists
+				)) {
+					$required = (
+						(!isset($value) && $validator['required'] === true) ||
+						(
+							isset($value) && (empty($value) &&
+							!is_numeric($value)) && $validator['allowEmpty'] === false
+						)
+					);
+
+					if ($required) {
+						$this->invalidate($fieldName, __d($validationDomain, $message));
+						if ($validator['last']) {
+							break;
+						}
+					} elseif (!is_null($value)) {
+						if (empty($value) && $value != '0' && $validator['allowEmpty'] === true) {
+							break;
+						}
+						if (is_array($validator['rule'])) {
+							$rule = $validator['rule'][0];
+							unset($validator['rule'][0]);
+							$ruleParams = array_merge(array($value), array_values($validator['rule']));
+						} else {
+							$rule = $validator['rule'];
+							$ruleParams = array($value);
+						}
+
+						$valid = true;
+
+						if (in_array($rule, $methods)) {
+							$ruleParams[] = $validator;
+							$ruleParams[0] = array($fieldName => $ruleParams[0]);
+							$valid = call_user_func_array(array($this, $method), $ruleParams);
+						} elseif (method_exists('Validation', $rule)) {
+							$valid = call_user_func_array(array('Validation', $rule), $ruleParams);
+						} elseif (!is_array($validator['rule'])) {
+							$valid = preg_match($rule, $value);
+						} elseif (Configure::read('debug') > 0) {
+							trigger_error(__d('cake_dev', 'Could not find validation handler %s for %s', $rule, $fieldName), E_USER_WARNING);
+						}
+
+						if (!$valid || (is_string($valid) && strlen($valid) > 0)) {
+							if (is_string($valid) && strlen($valid) > 0) {
+								$validator['message'] = $valid;
+							} elseif (!isset($validator['message'])) {
+								if (is_string($index)) {
+									$validator['message'] = $index;
+								} elseif (is_numeric($index) && count($ruleSet) > 1) {
+									$validator['message'] = $index + 1;
+								} else {
+									$validator['message'] = __d($validationDomain, $message);
+								}
+							}
+							$this->invalidate($fieldName, $validator['message']);
+
+							if ($validator['last']) {
+								break;
+							}
+						}
+					}
+				}
+			}
+		}
+		$this->validate = $_validate;
+		return $this->validationErrors;
+	}
+
+/**
+ * Marks a field as invalid, optionally setting the name of validation
+ * rule (in case of multiple validation for field) that was broken.
+ *
+ * @param string $field The name of the field to invalidate
+ * @param mixed $value Name of validation rule that was not failed, or validation message to
+ *    be returned. If no validation key is provided, defaults to true.
+ */
+	public function invalidate($field, $value = true) {
+		if (!is_array($this->validationErrors)) {
+			$this->validationErrors = array();
+		}
+		$this->validationErrors[$field] []= $value;
+	}
 
 /**
  * Persists a document in the datastore. Keep in mind that issuing flush() is needed after this method

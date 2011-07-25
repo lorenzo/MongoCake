@@ -40,6 +40,13 @@ class User extends CakeDocument {
 		return true;
 	}
 
+	public function beforeValidate() {
+		if ($this->username == 'thisshouldnotvalidate') {
+			$this->invalidate('username', 'This is not good');
+		}
+		return true;
+	}
+
     public function getId()
     {
         return $this->id;
@@ -58,6 +65,11 @@ class User extends CakeDocument {
     public function setPassword($password)
     {
         $this->password = md5($password);
+    }
+
+	public function getPassword()
+    {
+		return $this->password;
     }
 
     public function checkPassword($password)

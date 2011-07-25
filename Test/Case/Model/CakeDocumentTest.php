@@ -174,6 +174,80 @@ class CakeDocumentTest extends CakeTestCase {
 	}
 
 /**
+ * Tests that validates behaves as a normal CakePHP model
+ *
+ * @return void
+ */
+	public function testValidation() {
+		$user = new User();
+		$user->validate = array(
+			'username' => array(
+				'notEmpty' => array(
+					'rule' => array('notEmpty'),
+					'message' => 'The username is required',
+					'required' => true
+				)
+			),
+			'password' => array(
+				'length' => array(
+					'rule' => array('between', 6, 100),
+					'required' => true,
+					'message' => 'The password is required',
+				)
+			)
+		);
+		$this->assertFalse($user->validates());
+		$this->assertEquals(array('The username is required'), $user->validationErrors['username']);
+		$this->assertEquals(array('The password is required'), $user->validationErrors['password']);
+
+		$user->validationErrors = array();
+		$user->setUsername('jose');
+		$this->assertFalse($user->validates());
+		$this->assertFalse(isset($user->validationErrors['username']));
+		$this->assertEquals(array('The password is required'), $user->validationErrors['password']);
+
+		$user->validationErrors = array();
+		$user->setUsername('jose');
+		$this->assertFalse($user->validates());
+		$this->assertFalse(isset($user->validationErrors['username']));
+		$this->assertEquals(array('The password is required'), $user->validationErrors['password']);
+
+		$user->validationErrors = array();
+		$user->setUsername('jose');
+		$user->setPassword('jose12345');
+		$this->assertTrue($user->validates());
+		$this->assertEmpty($user->validationErrors);
+	}
+
+/**
+ * Tests that validates triggers the beforeValidate callback
+ *
+ * @return void
+ */
+	public function testValidationBeforeCallback() {
+		$user = new User();
+		$user->validate = array(
+			'username' => array(
+				'notEmpty' => array(
+					'rule' => array('notEmpty'),
+					'message' => 'The username is required',
+					'required' => true
+				)
+			),
+			'password' => array(
+				'length' => array(
+					'rule' => array('between', 6, 100),
+					'required' => true,
+					'message' => 'The password is required',
+				)
+			)
+		);
+		$user->setUsername('thisshouldnotvalidate');
+		$this->assertFalse($user->validates());
+		$this->assertEquals(array('This is not good'), $user->validationErrors['username']);
+	}
+
+/**
  * Returns a mocked document class, and sets the metadata in the driver for the new document
  *
  * @param $class The name of the Document to mock
