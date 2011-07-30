@@ -186,6 +186,11 @@ class CakeDocumentTest extends CakeTestCase {
 					'rule' => array('notEmpty'),
 					'message' => 'The username is required',
 					'required' => true
+				),
+				'crazy' => array(
+					'rule' => array('custom', '/abc$/'),
+					'on' => 'update',
+					'message' => 'if updating it should end with abc'
 				)
 			),
 			'password' => array(
@@ -217,6 +222,16 @@ class CakeDocumentTest extends CakeTestCase {
 		$user->setPassword('jose12345');
 		$this->assertTrue($user->validates());
 		$this->assertEmpty($user->validationErrors);
+
+		$this->assertTrue($user->save());
+		$user->setUsername('not Jose');
+		$this->assertFalse($user->validates());
+		$this->assertEquals(array('if updating it should end with abc'), $user->validationErrors['username']);
+
+		$user->validationErrors = array();
+		$user->setUsername('joseabc');
+		$this->assertTrue($user->validates());
+		$this->assertEmpty($user->validationErrors);
 	}
 
 /**
@@ -245,6 +260,93 @@ class CakeDocumentTest extends CakeTestCase {
 		$user->setUsername('thisshouldnotvalidate');
 		$this->assertFalse($user->validates());
 		$this->assertEquals(array('This is not good'), $user->validationErrors['username']);
+	}
+
+/**
+ * Tests that CakeDocument::set() will call set[Property] for each key on the array that is not managed by
+ * another document
+ *
+ * @return void
+ */
+	public function testSet() {
+		$data = array(
+			'username' => 'jose',
+			'password' => '12345'
+		);
+		$user = new User();
+		$user->set($data);
+		$this->assertEquals('jose', $user->getUsername());
+		$this->assertEquals(md5('12345'), $user->getPassword());
+
+		$data = array(
+			'User' => array(
+				'username' => 'jose',
+				'password' => '12345'
+			)
+		);
+		$user = new User();
+		$user->set($data);
+		$this->assertEquals('jose', $user->getUsername());
+		$this->assertEquals(md5('12345'), $user->getPassword());
+
+		$data = array(
+			'User' => array(
+				'account' => 'jose',
+				'phonenumber' => '12345',
+			)
+		);
+		$user = new User();
+		$user->set($data);
+		$this->assertNull($user->getUsername());
+		$this->assertNull($user->getPassword());
+		$this->assertNull($user->getAccount());
+		$this->assertEquals(new \Doctrine\Common\Collections\ArrayCollection(), $user->getPhonenumbers());
+	}
+
+/**
+ * Test that getAssociated can translate document mappings into well know CakePHP association names
+ *
+ */
+	public function testGetAssociated() {
+		$user = new User();
+		$result = $user->getAssociated();
+		$this->assertEquals('hasOne', $result['Address']['type']);
+		$this->assertTrue($result['Address']['embedded']);
+		$this->assertEquals('hasOne', $result['Account']['type']);
+		$this->assertTrue($result['Account']['reference']);
+		$this->assertEquals('hasMany', $result['PhoneNumber']['type']);
+		$this->assertTrue($result['PhoneNumber']['embedded']);
+
+		$number = new PhoneNumber();
+		$expected = array('OwningUser' => array('type' => 'belongsTo'));
+		$result = $number->getAssociated();
+		$this->assertEquals('belongsTo', $result['OwningUser']['type']);
+		$this->assertTrue($result['OwningUser']['reference']);
+	}
+
+	public function testSetWitAssociations() {
+		$data = array(
+			'User' => array(
+				'username' => 'jose',
+			),
+			'Account' => array(
+				'name' => 'My Account name'
+			),
+			'Address' => array(
+				'state' => 'California',
+				'city' => 'Los Angeles',
+				'street' => '154 NW',
+				'postalCode' => '90210'
+			)
+		);
+		$user = new User();
+		$user->set($data);
+		$this->assertEquals('jose', $user->username);
+		$this->assertEquals('My Account name', $user->account->name);
+		$this->assertEquals('California', $user->address->state);
+		$this->assertEquals('Los Angeles', $user->address->city);
+		$this->assertEquals('154 NW', $user->address->street);
+		$this->assertEquals('90210', $user->address->postalCode);
 	}
 
 /**

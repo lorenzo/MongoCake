@@ -15,13 +15,15 @@ class User extends CakeDocument {
     /** @String */
     private $password;
 
-    /** @EmbedOne(targetDocument="Address") */
+    /** @HasOneEmbedded(targetDocument="Address") */
     private $address;
 
-    /** @ReferenceOne(targetDocument="Account") */
+    /** @HasOne(targetDocument="Account") */
     private $account;
 
-    /** @EmbedMany(targetDocument="PhoneNumber") */
+    /**
+    * @HasManyEmbedded(targetDocument="PhoneNumber", alias="PhoneNumber")
+    **/
     private $phonenumbers;
 
 	public $useDbConfig = 'testMongo';

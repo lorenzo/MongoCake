@@ -5,7 +5,8 @@ use Doctrine\Common\Annotations\AnnotationReader,
 	Doctrine\ODM\MongoDB\Configuration,
 	Doctrine\ODM\MongoDB\Mapping\Driver\AnnotationDriver,
 	Doctrine\ODM\MongoDB\SchemaManager,
-	Doctrine\ODM\MongoDB\Events;
+	Doctrine\ODM\MongoDB\Events,
+	Doctrine\Common\ClassLoader;
 
 App::uses('DataSource', 'Model/Datasource');
 
@@ -33,10 +34,7 @@ class CakeMongoSource extends DataSource {
 		$configuration->setHydratorDir($hydratorDir);
 		$configuration->setHydratorNamespace($hydratorNamespace);
 		$configuration->setDefaultDB($database);
-
-		$reader = new AnnotationReader();
-		$reader->setDefaultAnnotationNamespace('Doctrine\ODM\MongoDB\Mapping\\');
-		$configuration->setMetadataDriverImpl(new AnnotationDriver($reader, App::path('Model')));
+		$configuration->setMetadataDriverImpl($this->_getMetadataReader());
 
 		$this->configuration = $configuration;
 		$this->connection = new Connection($server);
@@ -58,6 +56,15 @@ class CakeMongoSource extends DataSource {
 		if ($autoConnect) {
 			$this->connect();
 		}
+	}
+
+	protected function _getMetadataReader() {
+		$reader = new AnnotationReader();
+		$reader->setAnnotationNamespaceAlias('MongoCake\Annotation\\', 'cake');
+		$reader->setDefaultAnnotationNamespace('Doctrine\ODM\MongoDB\Mapping\\');
+		$driver = new AnnotationDriver($reader, App::path('Model'));
+		include_once CakePlugin::path('MongoCake') . 'Lib' . DS . 'MongoCake' . DS . 'Annotation' . DS . 'Annotations.php';
+		return $driver;
 	}
 
 	public function getConnection() {

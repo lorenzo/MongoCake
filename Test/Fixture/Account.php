@@ -11,7 +11,7 @@ class Account extends CakeDocument {
 
 	public $useDbConfig = 'testMongo';
 
-    public function __construct($name)
+    public function __construct($name = null)
     {
         $this->name = $name;
     }

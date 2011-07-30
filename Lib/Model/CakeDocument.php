@@ -348,6 +348,65 @@ class CakeDocument implements ArrayAccess {
 	}
 
 /**
+ * For all keys different to 'id' in $one, the keys and values of $one are set to
+ * the object properties in this document. If you provide as keys in $one names or aliases
+ * for associated documents, this function will recursively set the properties on the associated objects
+ *
+ * @param mixed $one Array or string of data
+ * @param string $two Value string for the alternative indata method
+ * @return CakeDocument this instance
+ */
+	public function set($one, $two = null) {
+		if (!$one) {
+			return;
+		}
+
+		$name = get_class($this);
+		if (is_array($one)) {
+			$data = $one;
+			if (empty($one[get_class($this)])) {
+				$data = array($name => $one);
+			}
+		} else {
+			$data = array($name => array($one => $two));
+		}
+
+		$schema = $this->schema();
+		$assotiated = $this->getAssociated();
+		foreach ($data as $modelName => $fieldSet) {
+			if (is_array($fieldSet)) {
+				if (isset($assotiated[$modelName])) {
+					if (method_exists($this, 'set' . $assotiated[$modelName]['fieldName'])) {
+						$assocDocument = $this->{$assotiated[$modelName]['fieldName']};
+						$assocDocument = ($assocDocument !== null) ? $assocDocument : new $assotiated[$modelName]['targetDocument'];
+						$assocDocument->set($fieldSet);
+						$this->{'set' . $assotiated[$modelName]['fieldName']}($assocDocument);
+					}
+				}
+				foreach ($fieldSet as $fieldName => $fieldValue) {
+					if (isset($this->validationErrors[$fieldName])) {
+						unset($this->validationErrors[$fieldName]);
+					}
+					if ($modelName === $name) {
+						if (!empty($schema['fieldMappings'][$fieldName]['targetDocument'])) {
+							//Trying to set an attribute managed by other document
+							continue;
+						}
+						if ($fieldName === 'id') {
+							//Only a search or a save can set the id
+							continue;
+						}
+						if (method_exists($this, 'set' . $fieldName)) {
+							$this->{'set' . $fieldName}($fieldValue);
+						}
+					}
+				}
+			}
+		}
+		return $this;
+	}
+
+/**
  * Persists a document in the datastore. Keep in mind that issuing flush() is needed after this method
  *
  * @return boolean success
@@ -377,4 +436,46 @@ class CakeDocument implements ArrayAccess {
 		}
 		$options += array('conditions' => array());
 	}
+
+/**
+ * Returns a list of all associated documents mapped by a property in this object
+ * pointing to an array containing all the options set for such relation including the
+ * the type of relationship (hasOne, hasMany, belongsTo)
+ *
+ * Return example:
+ *
+ *	{{{
+ *		array(
+ *			'Address' => array('type' => 'hasOne')
+ *			'PhoneNumber' => array('type' => 'hasMany', 'limit' => 5),
+ *			'ParentCompany' => array('type' => 'belongsTo')
+ *		)
+ *	}}}
+ *
+ * @return array
+ */
+	public function getAssociated() {
+		$schema = $this->schema();
+		$relations = array();
+		foreach ($schema['fieldMappings'] as $property => $opts) {
+			if (empty($opts['targetDocument'])) {
+				continue;
+			}
+			if ($opts['type'] == 'one') {
+				$type = 'hasOne';
+				$type = (!empty($opts['belongsTo'])) ? 'belongsTo' : $type;
+			}
+			if ($opts['type'] == 'many') {
+				$type = 'hasMany';
+			}
+			$alias = $opts['targetDocument'];
+			if (!empty($opts['alias'])) {
+				$alias = $opts['alias'];
+			}
+			$opts['type'] = $type;
+			$relations[$alias] = $opts;
+		}
+		return $relations;
+	}
+
 }

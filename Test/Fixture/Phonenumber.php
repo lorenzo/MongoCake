@@ -3,6 +3,10 @@ App::uses('CakeDocument', 'MongoCake.Model');
 
 /** @EmbeddedDocument */
 class Phonenumber extends CakeDocument {
+
+	/** @BelongsTo(targetDocument="User", inversedBy="phonenumbers", alias='OwningUser') */
+	private $user;
+
     /** @String */
     private $phonenumber;
 
