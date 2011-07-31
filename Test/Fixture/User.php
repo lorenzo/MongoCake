@@ -26,6 +26,12 @@ class User extends CakeDocument {
     **/
     private $phonenumbers;
 
+    /**
+    * @HasMany(targetDocument="Account", alias="SubAccount")
+    **/
+    private $subAccounts;
+
+
 	public $useDbConfig = 'testMongo';
 
 	public function __construct() {
@@ -107,6 +113,11 @@ class User extends CakeDocument {
     public function getPhonenumbers()
     {
         return $this->phonenumbers;
+    }
+
+	public function getSubAccounts()
+    {
+        return $this->subAccounts;
     }
 
     public function __toString()

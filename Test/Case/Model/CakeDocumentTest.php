@@ -324,6 +324,11 @@ class CakeDocumentTest extends CakeTestCase {
 		$this->assertTrue($result['OwningUser']['reference']);
 	}
 
+/**
+ * Tests that set() function will also set properties on associated objects
+ *
+ * @return void
+ */
 	public function testSetWitAssociations() {
 		$data = array(
 			'User' => array(
@@ -347,6 +352,153 @@ class CakeDocumentTest extends CakeTestCase {
 		$this->assertEquals('Los Angeles', $user->address->city);
 		$this->assertEquals('154 NW', $user->address->street);
 		$this->assertEquals('90210', $user->address->postalCode);
+
+		$data = array(
+			'User' => array(
+				'username' => 'larry'
+			),
+			'PhoneNumber' => array(
+				array(
+					'phonenumber' => '444-45676'
+				),
+				array(
+					'phonenumber' => '1234-1234'
+				)
+			)
+		);
+		$user = new User();
+		$user->set($data);
+		$this->assertEquals('larry', $user->username);
+		$this->assertEquals('444-45676', $user->phonenumbers[0]['phonenumber']);
+		$this->assertEquals('1234-1234', $user->phonenumbers[1]['phonenumber']);
+	}
+
+/**
+ * Tests that set() will also set properties on hasMany references
+ *
+ * @return void
+ */
+	public function testSetWithPreexistentHasMany() {
+		$data = array(
+			'User' => array(
+				'username' => 'larry',
+				'password' => '12345'
+			),
+			'PhoneNumber' => array(
+				array(
+					'phonenumber' => '444-45676'
+				),
+				array(
+					'phonenumber' => '1234-1234'
+				)
+			)
+		);
+		$user = new User();
+		$user->set($data);
+		$user->save();
+		$user->flush();
+
+		$users = $user->getRepository()->findBy(array('username' => 'larry'));
+		$users->next();
+		$user = $users->current();
+
+		$data['PhoneNumber'][0]['phonenumber'] = '555-4455';
+		$data['PhoneNumber'][1]['phonenumber'] = '777-4455';
+		$data['PhoneNumber'][2]['phonenumber'] = '1234-1234';
+		$user->set($data);
+		$this->assertEquals('555-4455', $user->phonenumbers[0]['phonenumber']);
+		$this->assertEquals('777-4455', $user->phonenumbers[1]['phonenumber']);
+		$this->assertEquals('1234-1234', $user->phonenumbers[2]['phonenumber']);
+		$user->save();
+		$user->flush();
+
+		$data = array(
+			'User' => array(),
+			'SubAccount' => array(
+				array('name' => 'First account'),
+				array('name' => 'Second account'),
+				array('name' => 'Third account'),
+			)
+		);
+		$user->set($data, true);
+		$this->assertEquals('First account', $user->subAccounts[0]['name']);
+		$this->assertEquals('Second account', $user->subAccounts[1]['name']);
+		$this->assertEquals('Third account', $user->subAccounts[2]['name']);
+		$user->save();
+		$user->flush();
+
+		$users = $user->getRepository()->findBy(array('username' => 'larry'));
+		$users->next();
+		$user = $users->current();
+		$this->assertEquals('First account', $user->subAccounts[0]['name']);
+		$this->assertEquals('Second account', $user->subAccounts[1]['name']);
+		$this->assertEquals('Third account', $user->subAccounts[2]['name']);
+
+		$account1 = spl_object_hash($user->subAccounts[0]);
+		$account2 = spl_object_hash($user->subAccounts[1]);
+		$account3 = spl_object_hash($user->subAccounts[2]);
+		$data = array(
+			'User' => array(),
+			'SubAccount' => array(
+				array(
+					'id' => $user->subAccounts[0]['id'],
+					'name' => 'Modified First account'
+				),
+				array(
+					'id' => $user->subAccounts[1]['id'],
+					'name' => 'Modified Second account'
+				),
+				array(
+					'id' => $user->subAccounts[2]['id'],
+					'name' => 'Modified Third account'
+				)
+			)
+		);
+
+
+		$user->set($data, true);
+		$this->assertEquals('Modified First account', $user->subAccounts[0]['name']);
+		$this->assertEquals('Modified Second account', $user->subAccounts[1]['name']);
+		$this->assertEquals('Modified Third account', $user->subAccounts[2]['name']);
+		$this->assertEquals($data['SubAccount'][0]['id'], $user->subAccounts[0]['id']);
+		$this->assertEquals($data['SubAccount'][1]['id'], $user->subAccounts[1]['id']);
+		$this->assertEquals($data['SubAccount'][2]['id'], $user->subAccounts[2]['id']);
+
+		$this->assertEquals($account1, spl_object_hash($user->subAccounts[0]));
+		$this->assertEquals($account2, spl_object_hash($user->subAccounts[1]));
+		$this->assertEquals($account3, spl_object_hash($user->subAccounts[2]));
+		$user->save();
+		$user->flush();
+
+
+		$data = array(
+			'User' => array(),
+			'SubAccount' => array(
+				array(
+					'id' => $user->subAccounts[1]['id'],
+					'name' => 'Altered Second account'
+				),
+				array(
+					'id' => $user->subAccounts[2]['id'],
+					'name' => 'Altered Third account'
+				),
+				array(
+					'id' => $user->subAccounts[0]['id'],
+					'name' => 'Altered First account'
+				),
+			)
+		);
+		$user->set($data, true);
+		$this->assertEquals('Altered First account', $user->subAccounts[0]['name']);
+		$this->assertEquals('Altered Second account', $user->subAccounts[1]['name']);
+		$this->assertEquals('Altered Third account', $user->subAccounts[2]['name']);
+		// $this->assertEquals($data['SubAccount'][0]['id'], $user->subAccounts[0]['id']);
+		// 		$this->assertEquals($data['SubAccount'][1]['id'], $user->subAccounts[1]['id']);
+		// 		$this->assertEquals($data['SubAccount'][2]['id'], $user->subAccounts[2]['id']);
+		// 
+		// 		$this->assertEquals($account1, spl_object_hash($user->subAccounts[0]));
+		// 		$this->assertEquals($account2, spl_object_hash($user->subAccounts[1]));
+		// 		$this->assertEquals($account3, spl_object_hash($user->subAccounts[2]));
 	}
 
 /**

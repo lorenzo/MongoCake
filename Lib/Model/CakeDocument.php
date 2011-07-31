@@ -344,7 +344,7 @@ class CakeDocument implements ArrayAccess {
 		if (!is_array($this->validationErrors)) {
 			$this->validationErrors = array();
 		}
-		$this->validationErrors[$field] []= $value;
+		$this->validationErrors[$field][]= $value;
 	}
 
 /**
@@ -352,11 +352,11 @@ class CakeDocument implements ArrayAccess {
  * the object properties in this document. If you provide as keys in $one names or aliases
  * for associated documents, this function will recursively set the properties on the associated objects
  *
- * @param mixed $one Array or string of data
- * @param string $two Value string for the alternative indata method
+ * @param array $one Array list of properties to be set indexed by Document name
+ * @param boolean $persistAssociated Whether this method should persist associated Documents after being set
  * @return CakeDocument this instance
  */
-	public function set($one, $two = null) {
+	public function set($one, $persistAssociated = false) {
 		if (!$one) {
 			return;
 		}
@@ -364,11 +364,9 @@ class CakeDocument implements ArrayAccess {
 		$name = get_class($this);
 		if (is_array($one)) {
 			$data = $one;
-			if (empty($one[get_class($this)])) {
+			if (!isset($one[get_class($this)])) {
 				$data = array($name => $one);
 			}
-		} else {
-			$data = array($name => array($one => $two));
 		}
 
 		$schema = $this->schema();
@@ -376,12 +374,8 @@ class CakeDocument implements ArrayAccess {
 		foreach ($data as $modelName => $fieldSet) {
 			if (is_array($fieldSet)) {
 				if (isset($assotiated[$modelName])) {
-					if (method_exists($this, 'set' . $assotiated[$modelName]['fieldName'])) {
-						$assocDocument = $this->{$assotiated[$modelName]['fieldName']};
-						$assocDocument = ($assocDocument !== null) ? $assocDocument : new $assotiated[$modelName]['targetDocument'];
-						$assocDocument->set($fieldSet);
-						$this->{'set' . $assotiated[$modelName]['fieldName']}($assocDocument);
-					}
+					$this->_setAssociated($modelName, $fieldSet, $assotiated[$modelName], $persistAssociated);
+					continue;
 				}
 				foreach ($fieldSet as $fieldName => $fieldValue) {
 					if (isset($this->validationErrors[$fieldName])) {
@@ -404,6 +398,42 @@ class CakeDocument implements ArrayAccess {
 			}
 		}
 		return $this;
+	}
+
+	protected function _setAssociated($modelName, $fieldSet, $assocOpts, $persist) {
+		$assocDocument = $this->{$assocOpts['fieldName']};
+		if ($assocOpts['type'] == 'hasMany' && Set::numeric(array_keys($fieldSet))) {
+			if ($assocDocument === null || !($assocDocument instanceof Doctrine\Common\Collections\Collection)) {
+				$assocDocument =  new \Doctrine\Common\Collections\ArrayCollection;
+				$reflection = $this->schema();
+				$reflection = $reflection['reflFields'][$assocOpts['fieldName']];
+				$reflection->setAccessible(true);
+				$reflection->setValue($this, $assocDocument);
+			}
+			foreach ($fieldSet as $i => $value) {
+				if (is_array($value)) {
+					if (!empty($value['id'])) {
+					}
+					
+					$v = isset($assocDocument[$i]) ? $assocDocument[$i] : new $assocOpts['targetDocument'];
+					$v->set($value);
+					if ($persist) {
+						$v->save();
+					}
+					$assocDocument[$i] = $v;
+				}
+			}
+		}
+		if (method_exists($this, 'set' . $assocOpts['fieldName'])) {
+			$prop = ($assocDocument !== null) ? $assocDocument : new $assocOpts['targetDocument'];
+			$prop->set($fieldSet);
+			if ($assocDocument === null) {
+				$this->{'set' . $assocOpts['fieldName']}($prop);
+			}
+			if ($persist) {
+				$prop->save();
+			}
+		}
 	}
 
 /**
