@@ -18,9 +18,9 @@ class CakeDocumentTest extends CakeTestCase {
 	}
 
 	public function tearDown() {
-		ConnectionManager::getDataSource('testMongo')
-			->getSchemaManager()
-			->dropDocumentCollection('User');
+		$manager = ConnectionManager::getDataSource('testMongo')->getSchemaManager();
+		$manager->dropDocumentCollection('User');
+		$manager->dropDocumentCollection('Account');
 		App::build();
 		ClassRegistry::flush();
 		ConnectionManager::drop('testMongo');
@@ -485,20 +485,122 @@ class CakeDocumentTest extends CakeTestCase {
 				array(
 					'id' => $user->subAccounts[0]['id'],
 					'name' => 'Altered First account'
-				),
+				)
 			)
 		);
 		$user->set($data, true);
 		$this->assertEquals('Altered First account', $user->subAccounts[0]['name']);
 		$this->assertEquals('Altered Second account', $user->subAccounts[1]['name']);
 		$this->assertEquals('Altered Third account', $user->subAccounts[2]['name']);
-		// $this->assertEquals($data['SubAccount'][0]['id'], $user->subAccounts[0]['id']);
-		// 		$this->assertEquals($data['SubAccount'][1]['id'], $user->subAccounts[1]['id']);
-		// 		$this->assertEquals($data['SubAccount'][2]['id'], $user->subAccounts[2]['id']);
-		// 
-		// 		$this->assertEquals($account1, spl_object_hash($user->subAccounts[0]));
-		// 		$this->assertEquals($account2, spl_object_hash($user->subAccounts[1]));
-		// 		$this->assertEquals($account3, spl_object_hash($user->subAccounts[2]));
+		$this->assertEquals($data['SubAccount'][2]['id'], $user->subAccounts[0]['id']);
+		$this->assertEquals($data['SubAccount'][0]['id'], $user->subAccounts[1]['id']);
+		$this->assertEquals($data['SubAccount'][1]['id'], $user->subAccounts[2]['id']);
+		$this->assertEquals($account1, spl_object_hash($user->subAccounts[0]));
+		$this->assertEquals($account2, spl_object_hash($user->subAccounts[1]));
+		$this->assertEquals($account3, spl_object_hash($user->subAccounts[2]));
+		$user->save();
+		$user->flush();
+
+		$data = array(
+			'User' => array(),
+			'SubAccount' => array(
+				array(
+					'id' => $user->subAccounts[1]['id'],
+					'name' => 'Modified Second account'
+				),
+				array(
+					'name' => 'New Forth account'
+				),
+				array(
+					'id' => $user->subAccounts[2]['id'],
+					'name' => 'Modified Third account'
+				),
+				array(
+					'id' => $user->subAccounts[0]['id'],
+					'name' => 'Modified First account'
+				)
+			)
+		);
+		$user->set($data, true);
+		$this->assertEquals('Modified First account', $user->subAccounts[0]['name']);
+		$this->assertEquals('Modified Second account', $user->subAccounts[1]['name']);
+		$this->assertEquals('Modified Third account', $user->subAccounts[2]['name']);
+		$this->assertEquals('New Forth account', $user->subAccounts[3]['name']);
+		$this->assertEquals($data['SubAccount'][3]['id'], $user->subAccounts[0]['id']);
+		$this->assertEquals($data['SubAccount'][0]['id'], $user->subAccounts[1]['id']);
+		$this->assertEquals($data['SubAccount'][2]['id'], $user->subAccounts[2]['id']);
+		$this->assertEquals($account1, spl_object_hash($user->subAccounts[0]));
+		$this->assertEquals($account2, spl_object_hash($user->subAccounts[1]));
+		$this->assertEquals($account3, spl_object_hash($user->subAccounts[2]));
+	}
+
+/**
+ * Tests that save uses sets recursively the validation errors for all associated documents
+ *
+ * @return void
+ */
+	public function testSaveWithValidationErrors() {
+		$data = array(
+			'User' => array(
+				'username' => 'larry',
+				'password' => '12345'
+			),
+			'PhoneNumber' => array(
+				array(
+					'phonenumber' => '00444-45676'
+				),
+				array(
+					'phonenumber' => '001234-1234'
+				)
+			),
+			'SubAccount' => array(
+				array('name' => 'X First account'),
+				array('name' => 'X Second account'),
+				array('name' => 'X Third account'),
+			),
+			'Account' => array(
+				'name' => 'X Primary Account'
+			)
+		);
+		$user = new User();
+		$user->validate = array(
+			'username' => array('fail' => array('rule' => array('custom', '/jose/'), 'message' => 'only jose is allowed')),
+		);
+		$this->assertFalse($user->save($data));
+		$this->assertEquals(array('only jose is allowed'), $user->validationErrors['username']);
+
+		$expected = array('name' => array('The name should not start with X'));
+		$this->assertEquals(array_fill(0, 3, $expected), $user->validationErrors['SubAccount']);
+		$this->assertEquals($expected, $user->validationErrors['Account']);
+
+		$expected = array('phonenumber' => array('The number should not start with 00'));
+		$this->assertEquals(array_fill(0, 2, $expected), $user->validationErrors['PhoneNumber']);
+
+		$data = array(
+			'User' => array(
+				'username' => 'larry',
+				'password' => '12345'
+			),
+			'PhoneNumber' => array(
+				array(
+					'phonenumber' => '444-45676'
+				),
+				array(
+					'phonenumber' => '1234-1234'
+				)
+			),
+			'SubAccount' => array(
+				array('name' => 'First account'),
+				array('name' => 'Second account'),
+				array('name' => 'Third account'),
+			),
+			'Account' => array(
+				'name' => 'Primary Account'
+			)
+		);
+		$user = new User();
+		$this->assertTrue($user->save($data));
+		$this->assertEquals(array(), $user->validationErrors);
 	}
 
 /**

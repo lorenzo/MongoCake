@@ -1,7 +1,7 @@
 <?php
 App::uses('CakeDocument', 'MongoCake.Model');
 
-/** @Document(collection="accounts") */
+/** @Document */
 class Account extends CakeDocument {
     /** @Id */
     private $id;
@@ -10,6 +10,11 @@ class Account extends CakeDocument {
     private $name;
 
 	public $useDbConfig = 'testMongo';
+	public $validate = array(
+		'name' => array(
+			'fail' => array('rule' => array('shouldNotStartWithX'))
+		)
+	);
 
     public function __construct($name = null)
     {
@@ -35,4 +40,11 @@ class Account extends CakeDocument {
     {
         return $this->name;
     }
+
+	public function shouldNotStartWithX() {
+		if ($this->name[0] === 'X') {
+			return 'The name should not start with X';
+		}
+		return true;
+	}
 }

@@ -297,7 +297,7 @@ class CakeDocument implements ArrayAccess {
 						if (in_array($rule, $methods)) {
 							$ruleParams[] = $validator;
 							$ruleParams[0] = array($fieldName => $ruleParams[0]);
-							$valid = call_user_func_array(array($this, $method), $ruleParams);
+							$valid = call_user_func_array(array($this, $rule), $ruleParams);
 						} elseif (method_exists('Validation', $rule)) {
 							$valid = call_user_func_array(array('Validation', $rule), $ruleParams);
 						} elseif (!is_array($validator['rule'])) {
@@ -352,6 +352,13 @@ class CakeDocument implements ArrayAccess {
  * the object properties in this document. If you provide as keys in $one names or aliases
  * for associated documents, this function will recursively set the properties on the associated objects
  *
+ *	In the case of hasMany associations, if the id is set in the data, this function will try to locate the
+ *	same object into the collection to be modified instead of creating a new one.
+ *
+ *	If $persistAssociated associated is set to true, this function will call save() on every method whose properties
+ *	were set. As a side effect the validation routines for the associated object will be executed, populating this
+ *	object validationErrors too. There is currently no way to disable this behavior.
+ *
  * @param array $one Array list of properties to be set indexed by Document name
  * @param boolean $persistAssociated Whether this method should persist associated Documents after being set
  * @return CakeDocument this instance
@@ -400,31 +407,21 @@ class CakeDocument implements ArrayAccess {
 		return $this;
 	}
 
+/**
+ * Auxiliary function to set properties on associated documents
+ *
+ * @param string $modelName name or alias of the Document association 
+ * @param array $fieldSet set of fields to be assigned to the associated document
+ * @param ArrayObject $assocOpts containing the association options for the associated field
+ * @param boolean $persist whether this function should call save() on the object after calling set() on it
+ * @return void
+ */
 	protected function _setAssociated($modelName, $fieldSet, $assocOpts, $persist) {
-		$assocDocument = $this->{$assocOpts['fieldName']};
 		if ($assocOpts['type'] == 'hasMany' && Set::numeric(array_keys($fieldSet))) {
-			if ($assocDocument === null || !($assocDocument instanceof Doctrine\Common\Collections\Collection)) {
-				$assocDocument =  new \Doctrine\Common\Collections\ArrayCollection;
-				$reflection = $this->schema();
-				$reflection = $reflection['reflFields'][$assocOpts['fieldName']];
-				$reflection->setAccessible(true);
-				$reflection->setValue($this, $assocDocument);
-			}
-			foreach ($fieldSet as $i => $value) {
-				if (is_array($value)) {
-					if (!empty($value['id'])) {
-					}
-					
-					$v = isset($assocDocument[$i]) ? $assocDocument[$i] : new $assocOpts['targetDocument'];
-					$v->set($value);
-					if ($persist) {
-						$v->save();
-					}
-					$assocDocument[$i] = $v;
-				}
-			}
+			$this->_setHasMany($modelName, $fieldSet, $assocOpts, $persist);
 		}
 		if (method_exists($this, 'set' . $assocOpts['fieldName'])) {
+			$assocDocument = $this->{$assocOpts['fieldName']};
 			$prop = ($assocDocument !== null) ? $assocDocument : new $assocOpts['targetDocument'];
 			$prop->set($fieldSet);
 			if ($assocDocument === null) {
@@ -433,16 +430,94 @@ class CakeDocument implements ArrayAccess {
 			if ($persist) {
 				$prop->save();
 			}
+			if (!empty($prop->validationErrors)) {
+				$this->validationErrors[$modelName] = $prop->validationErrors;
+			}
+		}
+	}
+
+/**
+ * Auxiliary function to set the properties on the nested hasMany values in the $fieldSet array
+ *
+ * @param string $modelName name or alias of the associated document to be set
+ * @param array $fieldSet list of document properties to be set
+ * @param ArrayObject $assocOpts containing the association options for the associated field
+ * @param boolean $persist whether this function should call save() on the object after calling set() on it
+ * @return void
+ */
+	protected function _setHasMany($modelName, $fieldSet, $assocOpts, $persist) {
+		$assocDocument = $this->{$assocOpts['fieldName']};
+		$hasManySetter = function ($assocDocument, $i, $value) use ($assocOpts, $persist) {
+			$validationErrors = array();
+			if (is_array($value)) {
+				$v = isset($assocDocument[$i]) ? $assocDocument[$i] : new $assocOpts['targetDocument'];
+				$v->set($value);
+				if ($persist) {
+					$v->save();
+				}
+				$assocDocument[$i] = $v;
+				if (!empty($v->validationErrors)) {
+					$validationErrors = $v->validationErrors;
+				}
+				return $validationErrors;
+			}
+		};
+
+		if ($assocDocument === null || !($assocDocument instanceof Doctrine\Common\Collections\Collection)) {
+			$assocDocument =  new \Doctrine\Common\Collections\ArrayCollection;
+			$reflection = $this->schema();
+			$reflection = $reflection['reflFields'][$assocOpts['fieldName']];
+			$reflection->setAccessible(true);
+			$reflection->setValue($this, $assocDocument);
+		}
+		$editions = array();
+		foreach ($fieldSet as $i => $value) {
+			if (!empty($value['id'])) {
+				$editions[$value['id']] = array('index' => $i, 'value' => $value);
+				unset($fieldSet[$i]);
+				continue;
+			}
+			$index = $i;
+			if (!empty($assocDocument[$index]['id'])) {
+				$index = $assocDocument->count();
+			}
+			$errors = $hasManySetter($assocDocument, $index, $value);
+			if (!empty($errors)) {
+				$this->validationErrors[$modelName][$index] = $errors;
+			}
+		}
+		if (!empty($editions)) {
+			$assocDocument->forAll(function($key, $document) use ($hasManySetter, $assocDocument, $editions, $modelName) {
+				$id = $document->id;
+				if (isset($editions[$id])) {
+					$errors = $hasManySetter($assocDocument, $key, $editions[$id]['value']);
+					if (!empty($errors)) {
+						$this->validationErrors[$modelName][$editions[$id]['index']] = $errors;
+					}
+				}
+				return true;
+			});
 		}
 	}
 
 /**
  * Persists a document in the datastore. Keep in mind that issuing flush() is needed after this method
  *
- * @return boolean success
+ * @param array $data set of fields indexed by document name to be set to the respective objects and persisted
+ * @param boolean $validate whether validation should be called for this object or not
+ *	NOTE: if using $data with associated documents in it, validation will be executed for the associated documents
+ *	regardless of the $validate param value
+ * @return boolean success if there were no validation errors or operation was not cancelled by any
+ * of the callbacks
  */
-	public function save() {
+	public function save($data = array(), $validate = true) {
 		try {
+			if (!empty($data)) {
+				$this->set($data, true);
+			}
+			if ($validate && !$this->validates()) {
+				return false;
+			}
 			$this->getDocumentManager()->persist($this);
 		} catch (OperationCancelledException $e) {
 			return false;
