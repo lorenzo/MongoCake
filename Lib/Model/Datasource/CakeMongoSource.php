@@ -3,6 +3,7 @@ use Doctrine\Common\Annotations\AnnotationReader,
 	Doctrine\ODM\MongoDB\DocumentManager,
 	Doctrine\MongoDB\Connection,
 	Doctrine\ODM\MongoDB\Configuration,
+	Doctrine\Common\Annotations\AnnotationRegistry,
 	Doctrine\ODM\MongoDB\Mapping\Driver\AnnotationDriver,
 	Doctrine\ODM\MongoDB\SchemaManager,
 	Doctrine\ODM\MongoDB\Events,
@@ -60,10 +61,9 @@ class CakeMongoSource extends DataSource {
 
 	protected function _getMetadataReader() {
 		$reader = new AnnotationReader();
-		$reader->setAnnotationNamespaceAlias('MongoCake\Annotation\\', 'cake');
-		$reader->setDefaultAnnotationNamespace('Doctrine\ODM\MongoDB\Mapping\\');
 		$driver = new AnnotationDriver($reader, App::path('Model'));
-		include_once CakePlugin::path('MongoCake') . 'Lib' . DS . 'MongoCake' . DS . 'Annotation' . DS . 'Annotations.php';
+		AnnotationDriver::registerAnnotationClasses();
+		AnnotationRegistry::registerFile(CakePlugin::path('MongoCake') . 'Lib' . DS . 'MongoCake' . DS . 'Annotation' . DS . 'Annotations.php');
 		return $driver;
 	}
 

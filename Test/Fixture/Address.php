@@ -1,18 +1,19 @@
 <?php
+use Doctrine\ODM\MongoDB\Mapping\Annotations as ODM;
 App::uses('CakeDocument', 'MongoCake.Model');
 
-/** @EmbeddedDocument */
+/** @ODM\EmbeddedDocument */
 class Address extends CakeDocument {
-    /** @String */
+    /** @ODM\String */
     private $street;
 
-    /** @String */
+    /** @ODM\String */
     private $city;
 
-    /** @String */
+    /** @ODM\String */
     private $state;
 
-    /** @String */
+    /** @ODM\String */
     private $postalCode;
 
 	public $useDbConfig = 'testMongo';

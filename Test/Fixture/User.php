@@ -1,33 +1,40 @@
 <?php
+use Doctrine\ODM\MongoDB\Mapping\Annotations as ODM;
+
 App::uses('CakeDocument', 'MongoCake.Model');
 App::uses('Address', 'Model');
 App::uses('Account', 'Model');
 App::uses('PhoneNumber', 'Model');
 
-/** @Document */
+/** @ODM\Document */
 class User extends CakeDocument {
-    /** @Id */
+    /** @ODM\Id */
     private $id;
 
-    /** @String */
+    /** @ODM\String */
     private $username;
 
-    /** @String */
+    /** @ODM\String */
     private $password;
 
-    /** @HasOneEmbedded(targetDocument="Address") */
+	/** @ODM\Float */
+	private $salary;
+
+    /**
+    * @ODM\HasOneEmbedded(targetDocument="Address", alias="Address")
+    **/
     private $address;
 
-    /** @HasOne(targetDocument="Account") */
+    /** @ODM\HasOne(targetDocument="Account") */
     private $account;
 
     /**
-    * @HasManyEmbedded(targetDocument="PhoneNumber", alias="PhoneNumber")
+    * @ODM\HasManyEmbedded(targetDocument="PhoneNumber", alias="PhoneNumber")
     **/
     private $phonenumbers;
 
     /**
-    * @HasMany(targetDocument="Account", alias="SubAccount")
+    * @ODM\HasMany(targetDocument="Account", alias="SubAccount")
     **/
     private $subAccounts;
 
@@ -119,6 +126,14 @@ class User extends CakeDocument {
     {
         return $this->subAccounts;
     }
+
+	public function setSalary($s) {
+		$this->salary = $s;
+	}
+
+	public function getSalary() {
+		return $this->salary;
+	}
 
     public function __toString()
     {

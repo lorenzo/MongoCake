@@ -1,12 +1,13 @@
 <?php
+use Doctrine\ODM\MongoDB\Mapping\Annotations as ODM;
 App::uses('CakeDocument', 'MongoCake.Model');
 
-/** @Document */
+/** @ODM\Document */
 class Account extends CakeDocument {
-    /** @Id */
+    /** @ODM\Id */
     private $id;
 
-    /** @String */
+    /** @ODM\String */
     private $name;
 
 	public $useDbConfig = 'testMongo';

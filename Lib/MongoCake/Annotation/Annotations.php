@@ -1,7 +1,8 @@
 <?php
-namespace Doctrine\ODM\MongoDB\Mapping;
+namespace Doctrine\ODM\MongoDB\Mapping\Annotations;
 
-final class HasOneEmbedded extends Field {
+/** @Annotation */
+final class HasOneEmbedded extends AbstractField {
     public $type = 'one';
     public $embedded = true;
     public $targetDocument;
@@ -9,7 +10,8 @@ final class HasOneEmbedded extends Field {
     public $discriminatorMap;
 	public $alias;
 }
-final class HasManyEmbedded extends Field {
+/** @Annotation */
+final class HasManyEmbedded extends AbstractField {
     public $type = 'many';
     public $embedded = true;
     public $targetDocument;
@@ -18,8 +20,8 @@ final class HasManyEmbedded extends Field {
     public $strategy = 'pushAll'; // pushAll, set
 	public $alias;
 }
-
-final class BelongsTo extends Field {
+/** @Annotation */
+final class BelongsTo extends AbstractField {
     public $type = 'one';
     public $reference = true;
     public $targetDocument;
@@ -36,7 +38,8 @@ final class BelongsTo extends Field {
 	public $alias;
 	public $belongsTo = true;
 }
-final class HasOne extends Field {
+/** @Annotation */
+final class HasOne extends AbstractField {
     public $type = 'one';
     public $reference = true;
     public $targetDocument;
@@ -52,7 +55,8 @@ final class HasOne extends Field {
     public $skip;
 	public $alias;
 }
-final class HasMany extends Field {
+/** @Annotation */
+final class HasMany extends AbstractField {
     public $type = 'many';
     public $reference = true;
     public $targetDocument;

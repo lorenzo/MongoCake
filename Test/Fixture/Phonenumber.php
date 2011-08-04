@@ -1,13 +1,14 @@
 <?php
+use Doctrine\ODM\MongoDB\Mapping\Annotations as ODM;
 App::uses('CakeDocument', 'MongoCake.Model');
 
-/** @EmbeddedDocument */
+/** @ODM\EmbeddedDocument */
 class Phonenumber extends CakeDocument {
 
-	/** @BelongsTo(targetDocument="User", inversedBy="phonenumbers", alias='OwningUser') */
+	/** @ODM\BelongsTo(targetDocument="User", inversedBy="phonenumbers", alias="OwningUser") */
 	private $user;
 
-    /** @String */
+    /** @ODM\String */
     private $phonenumber;
 
 	public $useDbConfig = 'testMongo';
