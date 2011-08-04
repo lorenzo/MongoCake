@@ -603,6 +603,101 @@ class CakeDocumentTest extends CakeTestCase {
 		$this->assertEquals(array(), $user->validationErrors);
 	}
 
+	public function testFind() {
+		for ($i = 0; $i < 3; $i++) {
+			$u = new User();
+			$u->save(array(
+				'User' => array(
+					'username' => 'User ' . $i,
+					'password' => 'password ' . $i,
+					'salary' => 100 + $i
+				)
+			));
+		}
+		$this->User->flush();
+		$users = $this->User->find('all');
+		$this->assertEquals(3, count($users));
+
+		$users = $this->User->find('all', array(
+			'conditions' => array('username' => 'User 1')
+		));
+		$this->assertEquals(1, count($users));
+
+		$users = $this->User->find('all', array(
+			'conditions' => array(
+				'username' => 'User 1',
+				'password' => md5('password 1')
+			)
+		));
+
+		$this->assertEquals(1, count($users));
+		$this->assertEquals('User 1', $users->getSingleResult()->username);
+
+		$users = $this->User->find('all', array(
+			'conditions' => array(
+				'username' => 'User 1',
+				'password' => 'nonsense'
+			)
+		));
+		$this->assertEquals(0, count($users));
+
+		$users = $this->User->find('all', array(
+			'conditions' => array(
+				'salary >' => 100
+			)
+		));
+		$this->assertEquals(2, count($users));
+
+		$users = $this->User->find('all', array(
+			'conditions' => array(
+				'salary >=' => 100
+			)
+		));
+		$this->assertEquals(3, count($users));
+
+		$users = $this->User->find('all', array(
+			'conditions' => array(
+				'salary <' => 101
+			)
+		));
+		$this->assertEquals(1, count($users));
+
+		$users = $this->User->find('all', array(
+			'conditions' => array(
+				'salary <=' => 101
+			)
+		));
+		$this->assertEquals(2, count($users));
+
+		$users = $this->User->find('all', array(
+			'conditions' => array(
+				'salary between' => array(100, 102)
+			)
+		));
+		$this->assertEquals(2, count($users));
+
+		$users = $this->User->find('all', array(
+			'conditions' => array(
+				'username !=' => 'User 1'
+			)
+		));
+		$this->assertEquals(2, count($users));
+
+		$users = $this->User->find('all', array(
+			'conditions' => array(
+				'username' => array('User 1', 'User 2')
+			)
+		));
+		$this->assertEquals(2, count($users));
+
+		$users = $this->User->find('all', array(
+			'conditions' => array(
+				'username !=' => array('User 1', 'User 2')
+			)
+		));
+		$this->assertEquals(1, count($users));
+	}
+
 /**
  * Returns a mocked document class, and sets the metadata in the driver for the new document
  *

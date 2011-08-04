@@ -44,6 +44,19 @@ class CakeDocument implements ArrayAccess {
 	public $whitelist = array();
 
 /**
+ * List of valid finder method options, supplied as the first parameter to find().
+ *
+ * @var array
+ * @access public
+ */
+	public $findMethods = array(
+		'all' => true,
+		'first' => true,
+		'count' => true,
+		'list' => true
+	);
+
+/**
  * Holds the schema description for this document
  *
  * @var ArrayObject
@@ -534,12 +547,71 @@ class CakeDocument implements ArrayAccess {
 		}
 	}
 
-	public function find($type, $options = array()) {
-		$repository = $this->getRepository();
-		if (!in_array($type, array('all', 'first'))) {
-			return $repository->find($type);
+	public function beforeFind($query) {
+		return $query;
+	}
+
+	public function find($type, $query = array()) {
+		$query = $this->buildQuery($type, $query);
+		if (is_null($query)) {
+			return null;
 		}
-		$options += array('conditions' => array());
+
+		if ($type != 'all' && empty($this->findMethods[$type])) {
+			return $this->getRepository()->find($type);
+		}
+
+		if ($type === 'all') {
+			return $query->getQuery();
+		} else {
+			if ($this->findMethods[$type] === true) {
+				return $this->{'_find' . ucfirst($type)}('after', $query, $results);
+			}
+		}
+	}
+
+/**
+ * Builds the query array that is used by the data source to generate the query to fetch the data.
+ *
+ * @param string $type Type of find operation (all, first,count...)
+ * @param array $query Option fields (conditions / fields / limit / offset / order / page / group / callbacks)
+ * @return array Query array or null if it could not be build for some reasons
+ * @see Model::find()
+ */
+	public function buildQuery($type = 'first', $query = array()) {
+		$proxy = $this->getDataSource()->createQueryBuilder(get_class($this));
+		$query = $proxy->addQueryArray($query);
+
+		if ($type !== 'all') {
+			if (!empty($this->findMethods[$type])) {
+				$query = $this->{'_find' . ucfirst($type)}('before', $query);
+			}
+		}
+
+		if (!isset($query['page']) || intval($query['page']) < 1) {
+			$query['page'] = 1;
+		}
+		if (!isset($query['skip']) && $query['page'] > 1 && !empty($query['limit'])) {
+			$query['skip'] = ($query['page'] - 1) * $query['limit'];
+		}
+
+		//if ($query['callbacks'] === true || $query['callbacks'] === 'before') {
+			/*$return = $this->Behaviors->trigger(
+				'beforeFind',
+				array(&$this, $query),
+				array('break' => true, 'breakOn' => array(false, null), 'modParams' => 1)
+			);
+			*/
+
+			$return = $this->beforeFind($query);
+			$query = (is_bool($return)) ? $query : $return;
+
+			if ($return === false) {
+				return null;
+			}
+		//}
+
+		return $query;
 	}
 
 /**

@@ -10,6 +10,7 @@ use Doctrine\Common\Annotations\AnnotationReader,
 	Doctrine\Common\ClassLoader;
 
 App::uses('DataSource', 'Model/Datasource');
+App::uses('QueryProxy', 'MongoCake.Query');
 
 class CakeMongoSource extends DataSource {
 	
@@ -77,6 +78,10 @@ class CakeMongoSource extends DataSource {
 
 	public function getConfiguration() {
 		return $this->configuration;
+	}
+
+	public function createQueryBuilder($documentName = null) {
+		return new QueryProxy($this->documentManager, $this->configuration->getMongoCmd(), $documentName);
 	}
 
 	public function getSchemaManager() {
