@@ -603,7 +603,7 @@ class CakeDocumentTest extends CakeTestCase {
 		$this->assertEquals(array(), $user->validationErrors);
 	}
 
-	public function testFind() {
+	public function testFindAllWithConditions() {
 		for ($i = 0; $i < 3; $i++) {
 			$u = new User();
 			$u->save(array(
@@ -695,6 +695,32 @@ class CakeDocumentTest extends CakeTestCase {
 				'username !=' => array('User 1', 'User 2')
 			)
 		));
+		$this->assertEquals(1, count($users));
+	}
+
+	public function testFindAllChainingConditions() {
+		for ($i = 0; $i < 3; $i++) {
+			$u = new User();
+			$u->save(array(
+				'User' => array(
+					'username' => 'User ' . $i,
+					'password' => 'password ' . $i,
+					'salary' => 100 + $i
+				),
+				'PhoneNumber' => array(
+					array('phonenumber' => '555-000' . $i),
+					array('phonenumber' => '333-000' . $i)
+				)
+			));
+		}
+		$this->User->flush();
+
+		$users = $this->User->find('all', array(
+			'conditions' => array('salary >=' => 100)
+		));
+		$this->assertEquals(3, count($users));
+
+		$users->field('username')->equals('User 2');
 		$this->assertEquals(1, count($users));
 	}
 

@@ -562,7 +562,7 @@ class CakeDocument implements ArrayAccess {
 		}
 
 		if ($type === 'all') {
-			return $query->getQuery();
+			return $query;
 		} else {
 			if ($this->findMethods[$type] === true) {
 				return $this->{'_find' . ucfirst($type)}('after', $query, $results);
