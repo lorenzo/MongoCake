@@ -615,6 +615,10 @@ class CakeDocumentTest extends CakeTestCase {
 				'SubAccount' => array(
 					array('name' => 'Sub Account ' . $i),
 					array('name' => 'Second Sub Account ' . $i),
+				),
+				'PhoneNumber' => array(
+					array('phonenumber' => '555-000' . $i),
+					array('phonenumber' => '333-000' . $i)
 				)
 			));
 		}
@@ -705,6 +709,19 @@ class CakeDocumentTest extends CakeTestCase {
 		$users = $this->User->find('all')->field('subAccounts')->includesReferenceTo($subAccount);
 		$this->assertEquals(1, count($users));
 		$this->assertEquals('User 0', $users->getSingleResult()->getUsername());
+
+		$users = $this->User->find('all')
+			->field('phonenumbers.phonenumber')->in(array('555-0000'));
+		$this->assertEquals(1, count($users));
+		$this->assertEquals('User 0', $users->getSingleResult()->getUsername());
+
+		$users = $this->User->find('all', array(
+			'conditions' => array(
+				'phonenumbers.phonenumber' => array('555-0001')
+			)
+		));
+		$this->assertEquals(1, count($users));
+		$this->assertEquals('User 1', $users->getSingleResult()->getUsername());
 	}
 
 	public function testFindAllChainingConditions() {
