@@ -62,6 +62,13 @@ class CakeDocument implements ArrayAccess {
  */
 	protected $_schema = array();
 
+	public static function __callStatic($method, $arguments) {
+		if (!empty(static::$findMethods[$method])) {
+			$query = empty($arguments) ? array() : current($arguments);
+			return static::find($method, $query);
+		}
+	}
+
 	public function __get($property) {
 		$schema = $this->schema();
 		if (isset($schema['fieldMappings'][$property]) && method_exists($this, 'get' . $property)) {
@@ -556,21 +563,19 @@ class CakeDocument implements ArrayAccess {
 			return null;
 		}
 
-		if ($type != 'all' && empty($this->findMethods[$type])) {
+		if ($type != 'all' && empty(static::$findMethods[$type])) {
 			return ConnectionManager::getDataSource(static::$useDbConfig)
 				->getDocumentManager()
 				->getRepository(get_called_class())
 				->find($type);
 		}
 
-		if ($type === 'all') {
-			return $query;
-		} else {
-			if (static::$findMethods[$type] === true) {
-				$method = '_find' . ucfirst($type);
-				return static::$method('after', $query);
-			}
+		if (!empty(static::$findMethods[$type]) && static::$findMethods[$type] === true) {
+			$method = '_find' . ucfirst($type);
+			return static::$method('after', $query);
 		}
+
+		return $query;
 	}
 
 /**
@@ -582,13 +587,17 @@ class CakeDocument implements ArrayAccess {
  * @see Model::find()
  */
 	public static function buildQuery($type = 'first', $query = array()) {
-		$proxy = ConnectionManager::getDataSource(static::$useDbConfig)->createQueryBuilder(get_called_class());
-		$query = $proxy->addQueryArray($query);
+		if (!($query instanceof QueryProxy)) {
+			$proxy = ConnectionManager::getDataSource(static::$useDbConfig)->createQueryBuilder(get_called_class());
+			$query = $proxy->addQueryArray($query);
+		}
 
 		if ($type !== 'all') {
-			if (!empty(static::$findMethods[$type])) {
+			if (static::$findMethods[$type] === true) {
 				$method = '_find' . ucfirst($type);
 				$query =  static::$method('before', $query);
+			} elseif (is_array(static::$findMethods[$type])) {
+				$query->addQueryArray(static::$findMethods[$type]);
 			}
 		}
 

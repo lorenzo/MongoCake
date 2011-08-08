@@ -742,6 +742,58 @@ class CakeDocumentTest extends CakeTestCase {
 
 		$users->field('username')->equals('User 2');
 		$this->assertEquals(1, count($users));
+
+		$users = User::find('all')->topPaid();
+		$this->assertEquals(2, count($users));
+		$i = 2;
+		foreach ($users as $user) {
+			$this->assertEquals('User ' . $i, $user->getUsername());
+			$i--;
+		}
+
+		$users = User::find('all')->lesserPaid();
+		$this->assertEquals(2, count($users));
+		$i = 0;
+		foreach ($users as $user) {
+			$this->assertEquals('User ' . $i, $user->getUsername());
+			$i++;
+		}
+
+		$users = User::find('topPaid');
+		$this->assertEquals(2, count($users));
+		$i = 2;
+		foreach ($users as $user) {
+			$this->assertEquals('User ' . $i, $user->getUsername());
+			$i--;
+		}
+
+		$users = User::find('lesserPaid');
+		$this->assertEquals(2, count($users));
+		$i = 0;
+		foreach ($users as $user) {
+			$this->assertEquals('User ' . $i, $user->getUsername());
+			$i++;
+		}
+
+		$users = User::topPaid();
+		$this->assertEquals(2, count($users));
+		$i = 2;
+		foreach ($users as $user) {
+			$this->assertEquals('User ' . $i, $user->getUsername());
+			$i--;
+		}
+
+		$users = User::lesserPaid();
+		$this->assertEquals(2, count($users));
+		$i = 0;
+		foreach ($users as $user) {
+			$this->assertEquals('User ' . $i, $user->getUsername());
+			$i++;
+		}
+
+		$users = User::topPaid()->isUser1();
+		$this->assertEquals(1, count($users));
+		$this->assertEquals('User 1', $users->getSingleResult()->getUsername());
 	}
 
 /**

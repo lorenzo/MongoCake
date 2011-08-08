@@ -6,7 +6,20 @@ use Doctrine\ODM\MongoDB\DocumentManager,
 class QueryProxy extends \Doctrine\ODM\MongoDB\Query\Builder implements ArrayAccess, IteratorAggregate, Countable {
 
 	private $iterator;
-	private $queryChanged = false;
+	protected $queryChanged = false;
+	protected $documentName;
+
+	public function __call($method, $arguments) {
+		$class = $this->documentName;
+		if (!empty($class)) {
+			return call_user_func_array(array($class, $method), array($this)); // TODO: Allow more parameters
+		}
+	}
+
+	public function __construct(DocumentManager $dm, $cmd, $documentName = null) {
+		$this->documentName = is_array($documentName) ? current($documentName) : $documentName;
+		parent::__construct($dm, $cmd, $documentName);
+	}
 
 	public function offsetExists($property) {
 		return isset($this->query[$property]);
@@ -763,7 +776,7 @@ class QueryProxy extends \Doctrine\ODM\MongoDB\Query\Builder implements ArrayAcc
  */
 	public function find($documentName = null) {
 		$this->queryChanged = true;
-		return parent::find($documentName);
+		return parent::find($s);
 	}
 
 /**
@@ -879,15 +892,4 @@ class QueryProxy extends \Doctrine\ODM\MongoDB\Query\Builder implements ArrayAcc
 		return parent::includesReferenceTo($document);
 	}
 
-/**
- * Sets the name of the document that will be used to find in the associated collection
- * and hydrate the results into it
- *
- * @param string $documentName 
- * @return void
- */
-	private function setDocumentName($documentName) {
-		$this->queryChanged = true;
-		parent::setDocumentName($documentName);
-	}
 }

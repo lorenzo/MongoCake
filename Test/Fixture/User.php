@@ -41,6 +41,17 @@ class User extends CakeDocument {
 
 	public static $useDbConfig = 'testMongo';
 
+	public static $findMethods = array(
+		'topPaid' => true,
+		'lesserPaid' => array(
+			'conditions' => array('salary <' => 102),
+			'order' => array('salary' => 'asc')
+		),
+		'isUser1' => array(
+			'conditions' => array('username' => 'User 1')
+		)
+	);
+
 	public function __construct() {
 		$this->phonenumbers = new \Doctrine\Common\Collections\ArrayCollection();
 	}
@@ -139,4 +150,12 @@ class User extends CakeDocument {
     {
         return $this->username;
     }
+
+	protected static function _findTopPaid($status, $query) {
+		if ($status == 'before') {
+			$query->field('salary')->gt(100)->sort('salary', 'desc');
+		}
+
+		return $query;
+	}
 }
