@@ -12,7 +12,7 @@ class CakeDocument implements ArrayAccess {
  *
  * @var string
  */
-	public $useDbConfig = 'default';
+	public static $useDbConfig = 'default';
 
 /**
  * Set of validation rules for this document
@@ -47,9 +47,8 @@ class CakeDocument implements ArrayAccess {
  * List of valid finder method options, supplied as the first parameter to find().
  *
  * @var array
- * @access public
  */
-	public $findMethods = array(
+	public static $findMethods = array(
 		'all' => true,
 		'first' => true,
 		'count' => true,
@@ -127,7 +126,7 @@ class CakeDocument implements ArrayAccess {
 	}
 
 	public function getDataSource() {
-		return ConnectionManager::getDataSource($this->useDbConfig);
+		return ConnectionManager::getDataSource(static::$useDbConfig);
 	}
 
 	public function getDocumentManager() {
@@ -551,21 +550,25 @@ class CakeDocument implements ArrayAccess {
 		return $query;
 	}
 
-	public function find($type, $query = array()) {
-		$query = $this->buildQuery($type, $query);
+	public static function find($type, $query = array()) {
+		$query = static::buildQuery($type, $query);
 		if (is_null($query)) {
 			return null;
 		}
 
 		if ($type != 'all' && empty($this->findMethods[$type])) {
-			return $this->getRepository()->find($type);
+			return ConnectionManager::getDataSource(static::$useDbConfig)
+				->getDocumentManager()
+				->getRepository(get_called_class())
+				->find($type);
 		}
 
 		if ($type === 'all') {
 			return $query;
 		} else {
-			if ($this->findMethods[$type] === true) {
-				return $this->{'_find' . ucfirst($type)}('after', $query, $results);
+			if (static::$findMethods[$type] === true) {
+				$method = '_find' . ucfirst($type);
+				return static::$method('after', $query);
 			}
 		}
 	}
@@ -578,13 +581,14 @@ class CakeDocument implements ArrayAccess {
  * @return array Query array or null if it could not be build for some reasons
  * @see Model::find()
  */
-	public function buildQuery($type = 'first', $query = array()) {
-		$proxy = $this->getDataSource()->createQueryBuilder(get_class($this));
+	public static function buildQuery($type = 'first', $query = array()) {
+		$proxy = ConnectionManager::getDataSource(static::$useDbConfig)->createQueryBuilder(get_called_class());
 		$query = $proxy->addQueryArray($query);
 
 		if ($type !== 'all') {
-			if (!empty($this->findMethods[$type])) {
-				$query = $this->{'_find' . ucfirst($type)}('before', $query);
+			if (!empty(static::$findMethods[$type])) {
+				$method = '_find' . ucfirst($type);
+				$query =  static::$method('before', $query);
 			}
 		}
 
@@ -595,13 +599,13 @@ class CakeDocument implements ArrayAccess {
 			$query['skip'] = ($query['page'] - 1) * $query['limit'];
 		}
 
-		//if ($query['callbacks'] === true || $query['callbacks'] === 'before') {
-			/*$return = $this->Behaviors->trigger(
+		/*if ($query['callbacks'] === true || $query['callbacks'] === 'before') {
+			$return = $this->Behaviors->trigger(
 				'beforeFind',
 				array(&$this, $query),
 				array('break' => true, 'breakOn' => array(false, null), 'modParams' => 1)
 			);
-			*/
+			
 
 			$return = $this->beforeFind($query);
 			$query = (is_bool($return)) ? $query : $return;
@@ -610,6 +614,7 @@ class CakeDocument implements ArrayAccess {
 				return null;
 			}
 		//}
+		*/
 
 		return $query;
 	}

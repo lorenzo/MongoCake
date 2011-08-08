@@ -11,7 +11,7 @@ class Phonenumber extends CakeDocument {
     /** @ODM\String */
     private $phonenumber;
 
-	public $useDbConfig = 'testMongo';
+	public static $useDbConfig = 'testMongo';
 	public $validate = array(
 		'phonenumber' => array(
 			'fail' => array('rule' => array('shouldNotStartWith00'))

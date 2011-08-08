@@ -16,7 +16,7 @@ class Address extends CakeDocument {
     /** @ODM\String */
     private $postalCode;
 
-	public $useDbConfig = 'testMongo';
+	public static $useDbConfig = 'testMongo';
 
     public function getStreet()
     {

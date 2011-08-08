@@ -85,7 +85,7 @@ class CakeDocumentTest extends CakeTestCase {
 
 		//The beforeSave callback should have changed the name
 		$this->assertEquals($u->getUsername(), 'jose rules, it is true');
-		$user = $this->User->find($u->getId());
+		$user = User::find($u->getId());
 	}
 
 /**
@@ -154,7 +154,7 @@ class CakeDocumentTest extends CakeTestCase {
 		$user->delete();
 		$user->flush();
 	
-		$this->assertNull($this->User->find($user->getId()));
+		$this->assertNull(User::find($user->getId()));
 	}
 
 /**
@@ -170,7 +170,7 @@ class CakeDocumentTest extends CakeTestCase {
 		$user->flush();
 		$user->delete();
 		$user->flush();
-		$this->assertNull($this->User->find($user->getId()));
+		$this->assertNull(User::find($user->getId()));
 	}
 
 /**
@@ -623,15 +623,15 @@ class CakeDocumentTest extends CakeTestCase {
 			));
 		}
 		$this->User->flush();
-		$users = $this->User->find('all');
+		$users = User::find('all');
 		$this->assertEquals(3, count($users));
 
-		$users = $this->User->find('all', array(
+		$users = User::find('all', array(
 			'conditions' => array('username' => 'User 1')
 		));
 		$this->assertEquals(1, count($users));
 
-		$users = $this->User->find('all', array(
+		$users = User::find('all', array(
 			'conditions' => array(
 				'username' => 'User 1',
 				'password' => md5('password 1')
@@ -641,7 +641,7 @@ class CakeDocumentTest extends CakeTestCase {
 		$this->assertEquals(1, count($users));
 		$this->assertEquals('User 1', $users->getSingleResult()->username);
 
-		$users = $this->User->find('all', array(
+		$users = User::find('all', array(
 			'conditions' => array(
 				'username' => 'User 1',
 				'password' => 'nonsense'
@@ -649,56 +649,56 @@ class CakeDocumentTest extends CakeTestCase {
 		));
 		$this->assertEquals(0, count($users));
 
-		$users = $this->User->find('all', array(
+		$users = User::find('all', array(
 			'conditions' => array(
 				'salary >' => 100
 			)
 		));
 		$this->assertEquals(2, count($users));
 
-		$users = $this->User->find('all', array(
+		$users = User::find('all', array(
 			'conditions' => array(
 				'salary >=' => 100
 			)
 		));
 		$this->assertEquals(3, count($users));
 
-		$users = $this->User->find('all', array(
+		$users = User::find('all', array(
 			'conditions' => array(
 				'salary <' => 101
 			)
 		));
 		$this->assertEquals(1, count($users));
 
-		$users = $this->User->find('all', array(
+		$users = User::find('all', array(
 			'conditions' => array(
 				'salary <=' => 101
 			)
 		));
 		$this->assertEquals(2, count($users));
 
-		$users = $this->User->find('all', array(
+		$users = User::find('all', array(
 			'conditions' => array(
 				'salary between' => array(100, 102)
 			)
 		));
 		$this->assertEquals(2, count($users));
 
-		$users = $this->User->find('all', array(
+		$users = User::find('all', array(
 			'conditions' => array(
 				'username !=' => 'User 1'
 			)
 		));
 		$this->assertEquals(2, count($users));
 
-		$users = $this->User->find('all', array(
+		$users = User::find('all', array(
 			'conditions' => array(
 				'username' => array('User 1', 'User 2')
 			)
 		));
 		$this->assertEquals(2, count($users));
 
-		$users = $this->User->find('all', array(
+		$users = User::find('all', array(
 			'conditions' => array(
 				'username !=' => array('User 1', 'User 2')
 			)
@@ -706,16 +706,16 @@ class CakeDocumentTest extends CakeTestCase {
 		$this->assertEquals(1, count($users));
 		$subAccount = $users->getSingleResult()->subAccounts[0];
 
-		$users = $this->User->find('all')->field('subAccounts')->includesReferenceTo($subAccount);
+		$users = User::find('all')->field('subAccounts')->includesReferenceTo($subAccount);
 		$this->assertEquals(1, count($users));
 		$this->assertEquals('User 0', $users->getSingleResult()->getUsername());
 
-		$users = $this->User->find('all')
+		$users = User::find('all')
 			->field('phonenumbers.phonenumber')->in(array('555-0000'));
 		$this->assertEquals(1, count($users));
 		$this->assertEquals('User 0', $users->getSingleResult()->getUsername());
 
-		$users = $this->User->find('all', array(
+		$users = User::find('all', array(
 			'conditions' => array(
 				'phonenumbers.phonenumber' => array('555-0001')
 			)
@@ -737,9 +737,7 @@ class CakeDocumentTest extends CakeTestCase {
 		}
 		$this->User->flush();
 
-		$users = $this->User->find('all', array(
-			'conditions' => array('salary >=' => 100)
-		));
+		$users = User::find('all');
 		$this->assertEquals(3, count($users));
 
 		$users->field('username')->equals('User 2');

@@ -10,7 +10,7 @@ class Account extends CakeDocument {
     /** @ODM\String */
     private $name;
 
-	public $useDbConfig = 'testMongo';
+	public static $useDbConfig = 'testMongo';
 	public $validate = array(
 		'name' => array(
 			'fail' => array('rule' => array('shouldNotStartWithX'))

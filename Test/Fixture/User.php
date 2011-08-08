@@ -39,7 +39,7 @@ class User extends CakeDocument {
     private $subAccounts;
 
 
-	public $useDbConfig = 'testMongo';
+	public static $useDbConfig = 'testMongo';
 
 	public function __construct() {
 		$this->phonenumbers = new \Doctrine\Common\Collections\ArrayCollection();
