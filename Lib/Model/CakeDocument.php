@@ -44,16 +44,60 @@ class CakeDocument implements ArrayAccess {
 	public $whitelist = array();
 
 /**
- * List of valid finder method options, supplied as the first parameter to find().
+ * List of valid finder method options, supplied as the first parameter to find()
+ * Methods can be listed either as 'method' => true, or define a set of options to
+ * be appended to the query. If defined as a method you must defined a function
+ * to append any special options to the current query.
+ *
+ * ## Examples:
+ *
+ * ### Defining inline scopes
+ *
+ *	{{{
+ *		public static $findMethods = array(
+ *			'published' => array(
+ *				'conditions' => array('published' => true)
+ *			)
+ *		);
+ *
+ *		// You can use different ways for querying using the published scope
+ *		$publishedPosts = Post::published();
+ *		$publishedPosts = Post::find('published');
+ *		$publishedPosts = Post::find('all')->published();
+ *	}}}
+ *	
+ * ### Defining scoped finder methods
+ *
+ *	{{{
+ *		public static $findMethods = array(
+ *			'recent' => true
+ *		);
+ *
+ *		protected function _find($state, $query, $args) {
+ *			if ($state == 'before') {
+ *				$limit = current($args) ?: 5;
+ *				$query->order('created', 'desc')->limit($limit);
+ *			}
+ *			return $query;
+ *		}
+ *
+ *		// You can pass params when using finder methods
+ *		$publishedPosts = Post::recent(10); // Limits the results to 10 documents
+ *		$publishedPosts = Post::find('recent');
+ *		$publishedPosts = Post::find('all')->recent(5);
+ *	}}}
+ *
+ *	### Chaining Scopes
+ *
+ *	It is possible to chain multiple scopes un the same query
+ *
+ *	{{{
+ *		$recentlyPublished = Post::recent(10)->published();
+ *	}}}
  *
  * @var array
  */
-	public static $findMethods = array(
-		'all' => true,
-		'first' => true,
-		'count' => true,
-		'list' => true
-	);
+	public static $findMethods = array();
 
 /**
  * Holds the schema description for this document
@@ -64,9 +108,14 @@ class CakeDocument implements ArrayAccess {
 
 	public static function __callStatic($method, $arguments) {
 		if (!empty(static::$findMethods[$method])) {
-			$query = empty($arguments) ? array() : current($arguments);
+			if (current($arguments) instanceof QueryProxy) {
+				$query = empty($arguments) ? array() : array_shift($arguments);
+			} else {
+				$query = array('args' => $arguments);
+			}
 			return static::find($method, $query);
 		}
+		throw new BadMethodCallException(sprintf('%s is not a valid call method in class %s', $method, get_called_class()));
 	}
 
 	public function __get($property) {
@@ -553,15 +602,8 @@ class CakeDocument implements ArrayAccess {
 		}
 	}
 
-	public function beforeFind($query) {
-		return $query;
-	}
 
 	public static function find($type, $query = array()) {
-		$query = static::buildQuery($type, $query);
-		if (is_null($query)) {
-			return null;
-		}
 
 		if ($type != 'all' && empty(static::$findMethods[$type])) {
 			return ConnectionManager::getDataSource(static::$useDbConfig)
@@ -570,11 +612,16 @@ class CakeDocument implements ArrayAccess {
 				->find($type);
 		}
 
-		if (!empty(static::$findMethods[$type]) && static::$findMethods[$type] === true) {
-			$method = '_find' . ucfirst($type);
-			return static::$method('after', $query);
+		$query = static::buildQuery($type, $query);
+		if (is_null($query)) {
+			return null;
 		}
 
+		if (!empty(static::$findMethods[$type]) && static::$findMethods[$type] === true) {
+			$method = '_find' . ucfirst($type);
+			return static::$method('after', $query, $query->getArgs());
+		}
+		$query->clearArgs();
 		return $query;
 	}
 
@@ -587,15 +634,18 @@ class CakeDocument implements ArrayAccess {
  * @see Model::find()
  */
 	public static function buildQuery($type = 'first', $query = array()) {
-		if (!($query instanceof QueryProxy)) {
+		if (!$query instanceof QueryProxy) {
 			$proxy = ConnectionManager::getDataSource(static::$useDbConfig)->createQueryBuilder(get_called_class());
-			$query = $proxy->addQueryArray($query);
+			if (is_array($query)) {
+				$proxy->addQueryArray($query);
+			}
+			$query = $proxy;
 		}
 
 		if ($type !== 'all') {
 			if (static::$findMethods[$type] === true) {
 				$method = '_find' . ucfirst($type);
-				$query =  static::$method('before', $query);
+				$query =  static::$method('before', $query, $query->getArgs());
 			} elseif (is_array(static::$findMethods[$type])) {
 				$query->addQueryArray(static::$findMethods[$type]);
 			}
@@ -604,26 +654,9 @@ class CakeDocument implements ArrayAccess {
 		if (!isset($query['page']) || intval($query['page']) < 1) {
 			$query['page'] = 1;
 		}
-		if (!isset($query['skip']) && $query['page'] > 1 && !empty($query['limit'])) {
-			$query['skip'] = ($query['page'] - 1) * $query['limit'];
+		if (!isset($query['offset']) && $query['page'] > 1 && !empty($query['limit'])) {
+			$query['offset'] = ($query['page'] - 1) * $query['limit'];
 		}
-
-		/*if ($query['callbacks'] === true || $query['callbacks'] === 'before') {
-			$return = $this->Behaviors->trigger(
-				'beforeFind',
-				array(&$this, $query),
-				array('break' => true, 'breakOn' => array(false, null), 'modParams' => 1)
-			);
-			
-
-			$return = $this->beforeFind($query);
-			$query = (is_bool($return)) ? $query : $return;
-
-			if ($return === false) {
-				return null;
-			}
-		//}
-		*/
 
 		return $query;
 	}

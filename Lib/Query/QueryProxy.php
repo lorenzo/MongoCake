@@ -8,12 +8,23 @@ class QueryProxy extends \Doctrine\ODM\MongoDB\Query\Builder implements ArrayAcc
 	private $iterator;
 	protected $queryChanged = false;
 	protected $documentName;
+	protected $args = array();
 
 	public function __call($method, $arguments) {
 		$class = $this->documentName;
 		if (!empty($class)) {
-			return call_user_func_array(array($class, $method), array($this)); // TODO: Allow more parameters
+			$this->args = $arguments;
+			return $class::$method($this);
 		}
+		throw new BadMethodCallException('No class specified to call find method');
+	}
+
+	public function getArgs() {
+		return $this->args;
+	}
+
+	public function clearArgs() {
+		$this->args = array();
 	}
 
 	public function __construct(DocumentManager $dm, $cmd, $documentName = null) {
@@ -26,13 +37,16 @@ class QueryProxy extends \Doctrine\ODM\MongoDB\Query\Builder implements ArrayAcc
 	}
 
 	public function offsetGet($property) {
+		if ($property === 'args') {
+			return $this->getArgs();
+		}
 		if (isset($this->query[$property])) {
-			return $this->query['property'];
+			return $this->query[$property];
 		}
 	}
 
 	public function offsetSet($property, $value) {
-		$this->addQueryArray(array($property, $value));
+		$this->addQueryArray(array($property => $value));
 	}
 
 	public function offsetUnset($offset) {
@@ -55,11 +69,11 @@ class QueryProxy extends \Doctrine\ODM\MongoDB\Query\Builder implements ArrayAcc
 /**
  * Count the number of results for this query.
  *
- * @param boolean $all 
+ * @param boolean $resultSetOnly 
  * @return integer
  */
-    public function count($all = false) {
-        return $this->getIterator()->count($all);
+    public function count($resultSetOnly = true) {
+        return $this->getIterator()->count($resultSetOnly);
     }
 
 	public function getSingleResult() {
@@ -71,6 +85,10 @@ class QueryProxy extends \Doctrine\ODM\MongoDB\Query\Builder implements ArrayAcc
     }
 
 	public function addQueryArray(array $query) {
+		if (!empty($query['args'])) {
+			$this->args = $query['args'];
+			unset($query['args']);
+		}
 		if (!empty($query['fields'])) {
 			call_user_func_array(array($this, 'select'), $query['fields']);
 			unset($query['fields']);
@@ -83,12 +101,10 @@ class QueryProxy extends \Doctrine\ODM\MongoDB\Query\Builder implements ArrayAcc
 
 		if (!empty($query['limit'])) {
 			$this->limit($query['limit']);
-			unset($query['limit']);
 		}
 
 		if (isset($query['offset'])) {
 			$this->skip($query['offset']);
-			unset($query['offset']);
 		}
 
 		if (!empty($query['order'])) {

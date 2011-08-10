@@ -151,9 +151,12 @@ class User extends CakeDocument {
         return $this->username;
     }
 
-	protected static function _findTopPaid($status, $query) {
+	protected static function _findTopPaid($status, $query, $args = array()) {
 		if ($status == 'before') {
 			$query->field('salary')->gt(100)->sort('salary', 'desc');
+			if (!empty($args)) {
+				$query['limit'] = array_shift($args);
+			}
 		}
 
 		return $query;

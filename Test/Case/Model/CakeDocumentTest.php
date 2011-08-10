@@ -39,9 +39,9 @@ class CakeDocumentTest extends CakeTestCase {
 		$u->flush();
 
  		$dm = $this->User->getDocumentManager();
-		$users = $dm->getRepository('User')->findBy(array('username' => 'jose'));
-		$users->next();
-		$user = $users->current();
+		$user = $dm->getRepository('User')->findOneBy(array('username' => 'jose'));
+		//$users->next();
+		//$user = $users->current();
 
 		$this->assertEquals($user->username, 'jose');
 		$this->assertEquals($user->phonenumbers[0]->phonenumber, '+5845559977');
@@ -794,6 +794,15 @@ class CakeDocumentTest extends CakeTestCase {
 		$users = User::topPaid()->isUser1();
 		$this->assertEquals(1, count($users));
 		$this->assertEquals('User 1', $users->getSingleResult()->getUsername());
+
+		//Testing that named scoeps can acept arguments too
+		$users = User::topPaid(1);
+		$this->assertEquals(1, count($users));
+		$this->assertEquals('User 2', $users->getSingleResult()->getUsername());
+
+		$users = User::find('all')->topPaid(1);
+		$this->assertEquals(1, count($users));
+		$this->assertEquals('User 2', $users->getSingleResult()->getUsername());
 	}
 
 /**
