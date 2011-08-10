@@ -795,7 +795,7 @@ class CakeDocumentTest extends CakeTestCase {
 		$this->assertEquals(1, count($users));
 		$this->assertEquals('User 1', $users->getSingleResult()->getUsername());
 
-		//Testing that named scoeps can acept arguments too
+		//Testing that named scopes can accept arguments too
 		$users = User::topPaid(1);
 		$this->assertEquals(1, count($users));
 		$this->assertEquals('User 2', $users->getSingleResult()->getUsername());
@@ -803,6 +803,32 @@ class CakeDocumentTest extends CakeTestCase {
 		$users = User::find('all')->topPaid(1);
 		$this->assertEquals(1, count($users));
 		$this->assertEquals('User 2', $users->getSingleResult()->getUsername());
+	}
+
+	public function testFindFirst() {
+		for ($i = 0; $i < 3; $i++) {
+			$u = new User();
+			$u->save(array(
+				'User' => array(
+					'username' => 'User ' . $i,
+					'password' => 'password ' . $i,
+					'salary' => 100 + $i
+				)
+			));
+		}
+		$this->User->flush();
+
+		$first = User::find('first');
+		$this->assertType('User', $first);
+		$this->assertEquals('User 0', $first->username);
+
+		$first = User::topPaid()->first();
+		$this->assertType('User', $first);
+		$this->assertEquals('User 2', $first->username);
+
+		$first = User::first();
+		$this->assertType('User', $first);
+		$this->assertEquals('User 0', $first->username);
 	}
 
 /**

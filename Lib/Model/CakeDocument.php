@@ -602,9 +602,89 @@ class CakeDocument implements ArrayAccess {
 		}
 	}
 
-
+/**
+ * Finds a single or a set of documents based on a query list of options or QueryProxy object.
+ * This method accepts special find methods defined in the $findMethods property for this class,
+ * such methods can either define a set of options or point to a helper find methods to be executed
+ * in order to append options to the query itself. 
+ *
+ * ## Examples
+ *
+ * ### Finding by document id
+ *
+ *	If you already know the id for a document you can get the object directly like this
+ *
+ *	{{{
+ *		$post = Post::find('af5b7781'); // find the post with id af5b7781
+ *	}}}
+ *
+ *	### Finding all documents based on conditions
+ *
+ *	You can ask this method to return all documents passing a list of options to the query as an array
+ *
+ *	{{{
+ *		$posts = Post::find('all'); // All posts in collection
+ *		$posts = Post::find('all', array(
+ *			'conditions' => array('published' => true),
+ *			'order' => array('created' => 'desc'),
+ *			'limit' => 10
+ *			'page' => 2 	// The second page for a paginated list of 10 records each
+ *		));
+ *	}}}
+ *
+ *	### Finding a single document
+ *
+ *	{{{
+ *		$post = Post::find('first', array(
+ *			'conditions' => array('timesViewed >' => 100) // First post viewed more than 100 times
+ *		));
+ *	}}}
+ *
+ *	### Custom find methods
+ *
+ *	You can define your custom methods in the property $findMethods on this class, please refer to its documentation.
+ *	Custom find methods can be called as static function in this class. Given that you defined a recent and an published
+ *	find method in $findMethods you can call those as shown next:
+ *
+ *	{{{
+ *		$recent = Post::recent();
+ *		$published = Post::published();
+ *	}}}
+ *
+ *	Custom find methods, when used as function needs to be defined as follows
+ *
+ *	{{{
+ *
+ *		protected static _find[CustomMethod]($state, $query, $args) {
+ *			...
+ *		}
+ *
+ *	}}}
+ *
+ *	CustomMethod is the name defined in the $findMethods property, with the first letter uppercased
+ *	The $state argument can take the values 'before' or 'after', the function is called twice one
+ *	for each of those states.
+ *
+ *	The 'before' state should return the query with any ned options attached to it
+ *
+ *	The 'after' method can return either the same query or any other return value depending o the logic of such method,
+ *	for instance, the _findFirst method returns a single query result instead of the complete result collection
+ *
+ *	The $query parameter is an instance of a QueryProxy class, refer to its API docs for full options
+ *
+ *	The $args parameter is an array of special arguments passed to the query when called as a separate method. Example:
+ *
+ *	{{{
+ *		$recent = Post::recent(10) // the $args argument will be set as array(10)
+ *	}}}
+ *
+ * @param string $type named of the special find method to be used
+ * @param array|QueryProxy $query list of options accepted by a QueryProxy or a QueryProxy object
+ * @see CakeDocument::$findMethods
+ * @return mixed QueryObject or any return type defined in special find methods
+ */
 	public static function find($type, $query = array()) {
-
+		static::$findMethods += array('first' => true);
 		if ($type != 'all' && empty(static::$findMethods[$type])) {
 			return ConnectionManager::getDataSource(static::$useDbConfig)
 				->getDocumentManager()
@@ -659,6 +739,14 @@ class CakeDocument implements ArrayAccess {
 		}
 
 		return $query;
+	}
+
+	protected static function _findFirst($state, $query) {
+		if ($state == 'before') {
+			$query->limit(1);
+			return $query;
+		}
+		return $query->getSingleResult();
 	}
 
 /**
