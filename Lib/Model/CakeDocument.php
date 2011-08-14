@@ -44,6 +44,13 @@ class CakeDocument implements ArrayAccess {
 	public $whitelist = array();
 
 /**
+ * Name of the property used as document identification
+ *
+ * @var string
+ */
+	public $primaryKey = 'id';
+
+/**
  * List of valid finder method options, supplied as the first parameter to find()
  * Methods can be listed either as 'method' => true, or define a set of options to
  * be appended to the query. If defined as a method you must defined a function
@@ -119,15 +126,18 @@ class CakeDocument implements ArrayAccess {
 	}
 
 	public function __get($property) {
+		if ($property === 'hasAndBelongsToMany') {
+			return array();
+		}
 		$schema = $this->schema();
-		if (isset($schema['fieldMappings'][$property]) && method_exists($this, 'get' . $property)) {
+		if (isset($schema[$property]) && method_exists($this, 'get' . $property)) {
 			return $this->{'get'.$property}();
 		}
 	}
 
 	public function __set($property, $value) {
 		$schema = $this->schema();
-		if (isset($schema['fieldMappings'][$property]) && method_exists($this, 'set' . $property)) {
+		if (isset($schema[$property]) && method_exists($this, 'set' . $property)) {
 			$this->{'set'.$property}($value);
 		}
 	}
@@ -148,14 +158,14 @@ class CakeDocument implements ArrayAccess {
 
 	public function offsetSet($property, $value) {
 		$schema = $this->schema();
-		if (isset($schema['fieldMappings'][$property])) {
+		if (isset($schema[$property])) {
 			$this->{$property} = $value;
 		}
 	}
 
-	public function offsetUnset($offset) {
+	public function offsetUnset($property) {
 		$schema = $this->schema();
-		if (isset($schema['fieldMappings'][$property])) {
+		if (isset($schema[$property])) {
 			$this->{$property} = null;
 		}
 	}
@@ -166,19 +176,19 @@ class CakeDocument implements ArrayAccess {
 		}
 
 		$schema = $this->schema();
-		$isField = isset($schema['fieldMappings'][$property]);
+		$isField = isset($schema[$property]);
 
 		if ($isField) {
 			return $this->{$property};
 		}
 
-		foreach ($schema['fieldMappings'] as $p => $field) {
+		foreach ($schema as $p => $field) {
 			if (!empty($field['targetDocument']) && $field['targetDocument'] == $property) {
 				return $this->{$p};
 			}
 		}
 
-		throw new Exception('Invalid offset');
+		trigger_error(sprintf('Invalid offset %s', $property));
 	}
 
 	public function getDataSource() {
@@ -203,12 +213,15 @@ class CakeDocument implements ArrayAccess {
 		if (!empty($this->_schema)) {
 			return $this->_schema;
 		}
-		$this->_schema = new ArrayObject(
-			$this->getDocumentManager()
-			->getMetadataFactory()
-			->getMetadataFor(get_class($this))
-		);
+
+		$this->_schema = $this->getDocumentMetaData()->fieldMappings;
 		return $this->_schema;
+	}
+
+	public function getDocumentMetaData() {
+		return $this->getDocumentManager()
+		->getMetadataFactory()
+		->getMetadataFor(get_class($this));
 	}
 
 	public function exists() {
@@ -433,7 +446,7 @@ class CakeDocument implements ArrayAccess {
  */
 	public function set($one, $persistAssociated = false) {
 		if (!$one) {
-			return;
+			return $this;
 		}
 
 		$name = get_class($this);
@@ -457,7 +470,7 @@ class CakeDocument implements ArrayAccess {
 						unset($this->validationErrors[$fieldName]);
 					}
 					if ($modelName === $name) {
-						if (!empty($schema['fieldMappings'][$fieldName]['targetDocument'])) {
+						if (!empty($schema[$fieldName]['targetDocument'])) {
 							//Trying to set an attribute managed by other document
 							continue;
 						}
@@ -467,6 +480,8 @@ class CakeDocument implements ArrayAccess {
 						}
 						if (method_exists($this, 'set' . $fieldName)) {
 							$this->{'set' . $fieldName}($fieldValue);
+						} else {
+							$this->{$fieldName} = $fieldValue;
 						}
 					}
 				}
@@ -533,8 +548,7 @@ class CakeDocument implements ArrayAccess {
 
 		if ($assocDocument === null || !($assocDocument instanceof Doctrine\Common\Collections\Collection)) {
 			$assocDocument =  new \Doctrine\Common\Collections\ArrayCollection;
-			$reflection = $this->schema();
-			$reflection = $reflection['reflFields'][$assocOpts['fieldName']];
+			$reflection = $this->getDocumentMetaData()->reflFields[$assocOpts['fieldName']];
 			$reflection->setAccessible(true);
 			$reflection->setValue($this, $assocDocument);
 		}
@@ -769,7 +783,7 @@ class CakeDocument implements ArrayAccess {
 	public function getAssociated() {
 		$schema = $this->schema();
 		$relations = array();
-		foreach ($schema['fieldMappings'] as $property => $opts) {
+		foreach ($schema as $property => $opts) {
 			if (empty($opts['targetDocument'])) {
 				continue;
 			}
@@ -788,6 +802,11 @@ class CakeDocument implements ArrayAccess {
 			$relations[$alias] = $opts;
 		}
 		return $relations;
+	}
+
+	public function hasField($field) {
+		$schema = $this->schema();
+		return isset($schema[$field]);
 	}
 
 }

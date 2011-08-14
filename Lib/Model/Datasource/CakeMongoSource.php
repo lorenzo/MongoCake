@@ -7,7 +7,8 @@ use Doctrine\Common\Annotations\AnnotationReader,
 	Doctrine\ODM\MongoDB\Mapping\Driver\AnnotationDriver,
 	Doctrine\ODM\MongoDB\SchemaManager,
 	Doctrine\ODM\MongoDB\Events,
-	Doctrine\Common\ClassLoader;
+	Doctrine\Common\ClassLoader,
+	Doctrine\Common\Cache\ApcCache;
 
 App::uses('DataSource', 'Model/Datasource');
 App::uses('QueryProxy', 'MongoCake.Query');
