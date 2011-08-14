@@ -554,13 +554,13 @@ class CakeDocument implements ArrayAccess {
 		}
 		$editions = array();
 		foreach ($fieldSet as $i => $value) {
-			if (!empty($value['id'])) {
-				$editions[$value['id']] = array('index' => $i, 'value' => $value);
+			if (!empty($value[$this->primaryKey])) {
+				$editions[$value[$this->primaryKey]] = array('index' => $i, 'value' => $value);
 				unset($fieldSet[$i]);
 				continue;
 			}
 			$index = $i;
-			if (!empty($assocDocument[$index]['id'])) {
+			if (!empty($assocDocument[$index][$this->primaryKey])) {
 				$index = $assocDocument->count();
 			}
 			$errors = $hasManySetter($assocDocument, $index, $value);
@@ -570,7 +570,7 @@ class CakeDocument implements ArrayAccess {
 		}
 		if (!empty($editions)) {
 			$assocDocument->forAll(function($key, $document) use ($hasManySetter, $assocDocument, $editions, $modelName) {
-				$id = $document->id;
+				$id = $document->{$document->primaryKey};
 				if (isset($editions[$id])) {
 					$errors = $hasManySetter($assocDocument, $key, $editions[$id]['value']);
 					if (!empty($errors)) {
