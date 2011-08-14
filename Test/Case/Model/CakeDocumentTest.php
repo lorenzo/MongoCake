@@ -722,6 +722,12 @@ class CakeDocumentTest extends CakeTestCase {
 		));
 		$this->assertEquals(1, count($users));
 		$this->assertEquals('User 1', $users->getSingleResult()->getUsername());
+
+		$users = User::find('all', array(
+			'conditions' => array('User.username' => 'User 0')
+		));
+		$this->assertEquals(1, count($users));
+		$this->assertEquals('User 0', $users->getSingleResult()->getUsername());
 	}
 
 	public function testFindAllChainingConditions() {

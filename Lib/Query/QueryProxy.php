@@ -122,6 +122,10 @@ class QueryProxy extends \Doctrine\ODM\MongoDB\Query\Builder implements ArrayAcc
 			if (strpos($field, ' ')) {
 				list($field, $operator) = explode(" ", $field, 2);
 			}
+			if (strpos($field, '.')) {
+				list($document, $f) = explode('.', $field, 2);
+				$field = ($document === $this->documentName) ? $f : $field;
+			}
 			switch ($operator) {
 				case 'size' :
 				case 'type' :
