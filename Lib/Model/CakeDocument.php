@@ -441,6 +441,28 @@ class CakeDocument implements ArrayAccess {
 	}
 
 /**
+ * Instantiates a new record or document object, initialized with any data passed in.
+ *
+ *	### Example
+ *
+ *	{{{
+ *		$user = User::create(array("username" => "Jhon"));
+ *		echo $user->username; // echoes "Jhon"
+ *		$success = $user->save();
+ *	}}}
+ *
+ * @param array $data set of fields to be passed to the set() function
+ * @return CakeDocument new instance of object with initialized data
+ */
+	public static function create($data = null) {
+		$document = new static();
+		if ($data) {
+			$document->set($data);
+		}
+		return $document;
+	}
+
+/**
  * For all keys different to 'id' in $one, the keys and values of $one are set to
  * the object properties in this document. If you provide as keys in $one names or aliases
  * for associated documents, this function will recursively set the properties on the associated objects
