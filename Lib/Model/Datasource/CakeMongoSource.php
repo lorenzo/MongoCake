@@ -39,8 +39,14 @@ class CakeMongoSource extends DataSource {
 		$configuration->setDefaultDB($database);
 		$configuration->setMetadataDriverImpl($this->_getMetadataReader());
 
+		if (Configure::read('debug') === 0) {
+			$configuration->setMetadataCacheImpl(new ApcCache());
+		}
+
+		$configuration->setLoggerCallable(function(array $log) {
+		});
 		$this->configuration = $configuration;
-		$this->connection = new Connection($server);
+		$this->connection = new Connection($server, array(), $configuration);
 		$this->documentManager = DocumentManager::create($this->connection, $configuration);
 
 		$this->documentManager->getEventManager()
@@ -55,10 +61,14 @@ class CakeMongoSource extends DataSource {
 				),
 				$this
 			);
-
-		if ($autoConnect) {
-			$this->connect();
+		try {
+			if ($autoConnect) {
+				$this->connect();
+			}
+		} catch (Exception $e) {
+			throw new MissingConnectionException(array('class' => get_class($this)));
 		}
+		
 	}
 
 	protected function _getMetadataReader() {

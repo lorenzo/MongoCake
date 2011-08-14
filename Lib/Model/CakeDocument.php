@@ -218,12 +218,24 @@ class CakeDocument implements ArrayAccess {
 		return $this->_schema;
 	}
 
+/**
+ * Returns this document's metadata (field definitions, relations, reflection fields)
+ *
+ * @return ClassMetadata
+ */
 	public function getDocumentMetaData() {
 		return $this->getDocumentManager()
 		->getMetadataFactory()
 		->getMetadataFor(get_class($this));
 	}
 
+/**
+ * Returns whether this document exists in database or not, it actually only checks
+ * if the document is managed or detached from the document manager, it will not query
+ * the datasource
+ *
+ * @return boolean
+ */
 	public function exists() {
 		$uow = $this->getDocumentManager()->getUnitOfWork();
 		$documentState = $uow->getDocumentState($this);
