@@ -38,6 +38,11 @@ class User extends CakeDocument {
     **/
     private $subAccounts;
 
+	/** @ODM\Date */
+	public $created;
+
+	/** @ODM\Date */
+	public $modified;
 
 	public static $useDbConfig = 'testMongo';
 

@@ -108,7 +108,12 @@ class CakeMongoSource extends DataSource {
 	}
 
 	public function prePersist(\Doctrine\ODM\MongoDB\Event\LifecycleEventArgs $eventArgs) {
-		$continue = $eventArgs->getDocument()->beforeSave(false);
+		$document = $eventArgs->getDocument();
+		$schema = $document->schema();
+		if ($document->hasField('created') && $schema['modified']['type'] == 'date') {
+			$document->created = new DateTime();
+		}
+		$continue = $document->beforeSave(false);
 		if (!$continue) {
 			throw new OperationCancelledException();
 		}
@@ -121,7 +126,10 @@ class CakeMongoSource extends DataSource {
 	public function preUpdate(\Doctrine\ODM\MongoDB\Event\LifecycleEventArgs $eventArgs) {
 		$document = $eventArgs->getDocument();
 		$dm = $eventArgs->getDocumentManager();
-
+		$schema = $document->schema();
+		if ($document->hasField('modified') && $schema['modified']['type'] == 'date') {
+			$document->modified = new DateTime();
+		}
 		$continue = $document->beforeSave(true);
 		if (!$continue) {
 			throw new OperationCancelledException();

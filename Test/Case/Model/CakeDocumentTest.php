@@ -831,6 +831,32 @@ class CakeDocumentTest extends CakeTestCase {
 		$this->assertEquals('User 0', $first->username);
 	}
 
+	public function testCreatedModified() {
+		$user = new User();
+		$user->username = 'joe';
+		$user->save();
+		$user->flush();
+		$this->assertTrue($user->created instanceof DateTime);
+		$this->assertEquals(date('Y-m-d H:i'), $user->created->format('Y-m-d H:i'));
+		$this->assertNull($user->modified);
+
+		$user->username = 'jose';
+		$user->save();
+		$user->flush();
+		$this->assertTrue($user->modified instanceof DateTime);
+		$this->assertEquals(date('Y-m-d H:i'), $user->modified->format('Y-m-d H:i'));
+
+		$user->phonenumbers[] = new PhoneNumber('555-444-44');
+		$user->save();
+		$user->flush();
+		$this->assertTrue($user->phonenumbers[0]->created instanceof DateTime);
+
+		$user->phonenumbers[0]->phonenumber = '444-555-55';
+		$user->save();
+		$user->flush();
+		$this->assertTrue($user->phonenumbers[0]->modified instanceof DateTime);
+	}
+
 /**
  * Returns a mocked document class, and sets the metadata in the driver for the new document
  *
