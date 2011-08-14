@@ -73,6 +73,9 @@ class QueryProxy extends \Doctrine\ODM\MongoDB\Query\Builder implements ArrayAcc
  * @return integer
  */
     public function count($resultSetOnly = true) {
+		if (!is_object($this->getIterator())) {
+			return 0;
+		}
         return $this->getIterator()->count($resultSetOnly);
     }
 
