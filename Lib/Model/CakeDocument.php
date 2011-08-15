@@ -109,10 +109,18 @@ class CakeDocument implements ArrayAccess {
 /**
  * Holds the schema description for this document
  *
- * @var ArrayObject
+ * @var array
  */
 	protected $_schema = array();
 
+/**
+ * Magic method to proxy calls to special finder methods when called as static functions
+ *
+ * @param string $method name of the method to be called
+ * @param string $arguments array of arguments to be passed in, thus params will be passed inside
+ *	the QueryProxy object internal property 'args'
+ * @return mixed
+ */
 	public static function __callStatic($method, $arguments) {
 		if (!empty(static::$findMethods[$method])) {
 			if (current($arguments) instanceof QueryProxy) {
@@ -125,6 +133,29 @@ class CakeDocument implements ArrayAccess {
 		throw new BadMethodCallException(sprintf('%s is not a valid call method in class %s', $method, get_called_class()));
 	}
 
+/**
+ * Magic method to retrieve object unreachable internal properties when accessed directly
+ * it will work only if the object implements the function get[Property]() to return the value.
+ *
+ *	### Example
+ *
+ *	{{{
+ *		class User extends CakeDocument {
+ *			private $fullName;
+ *			public function getFullName() {
+ *				return $this->fullName;
+ *			}
+ *		}
+ *		$user->fullname; // Will call User::getFullName();
+ *	}}}
+ *
+ *	One of the advantages of using getters is that it makes possible to execute specific logic
+ *	before the property is returned. It also enables you to define virtual fields by calculating
+ *	other internal object data
+ *
+ * @param string $property name of the property to get
+ * @return mixed property value if it an be reached using a getter function
+ */
 	public function __get($property) {
 		if ($property === 'hasAndBelongsToMany') {
 			return array();
@@ -135,6 +166,31 @@ class CakeDocument implements ArrayAccess {
 		}
 	}
 
+
+/**
+ * Magic method to set object unreachable internal properties when accessed directly
+ * it will work only if the object implements the function set[Property]() to set the value.
+ *
+ *	### Example
+ *
+ *	{{{
+ *		class User extends CakeDocument {
+ *			private $fullName;
+ *			public function setFullName($name) {
+ *				return $this->fullName = $name;
+ *			}
+ *		}
+ *		$user->fullname = 'John'; // Will call User::setFullName('Jhon');
+ *	}}}
+ *
+ *	One of the advantages of using setters is that it makes possible to execute specific logic
+ *	before the property is set, such as validation. It also enables you to define virtual fields by calculating
+ *	other internal object data
+ *
+ * @param string $property name of the property to set
+ * @param mixed $value data to be set to the property
+ * @return void
+ */
 	public function __set($property, $value) {
 		$schema = $this->schema();
 		if (isset($schema[$property]) && method_exists($this, 'set' . $property)) {
@@ -142,6 +198,14 @@ class CakeDocument implements ArrayAccess {
 		}
 	}
 
+/**
+ * Method implemented to comply with ArrayAccess interface, will return whether document's
+ * internal properties that are mapped as fields in the datasource exist or not, when accessed
+ * using the array interface
+ *
+ * @param string $property 
+ * @return boolean whether the mapped field exists or not
+ */
 	public function offsetExists($property) {
 		try {
 			$this->extractOffset($property);
@@ -152,10 +216,67 @@ class CakeDocument implements ArrayAccess {
 		return true;
 	}
 
+/**
+ * Method implemented to comply with ArrayAccess interface, will return document's
+ * internal properties that are mapped as fields in the datasource when accessed
+ * using the array interface. This interface is a backwards compatible method for
+ * accessing result data in CakePHP. This method is also able to fetch associated
+ * documents data using as array key the name of the associated document alias
+ * defined in the annotation
+ *
+ * ### Examples:
+ *
+ *	{{{
+ *		class User extends CakeDocument {
+ *			public $fullName;
+ * 			// @ODM\HasManyEmbedded(targetDocument="PhoneNumber", alias="PhoneNumber")
+ *			private $numbers;
+ *
+ *		}
+ *		$fullName = $user['fullName'];
+ *		$fullName = $user['User]['fullName']; // This is equivalent to the previous line
+ *
+ *		$phoneNumbers = $user['numbers'];
+ *		$firstPhoneNumber = $user['PhoneNumber'][0]['number'];
+ *	}}}
+ *
+ *
+ *
+ * @param string $property property name to be looked up
+ * @return mixed
+ */
 	public function offsetGet($property) {
 		return $this->extractOffset($property);
 	}
 
+/**
+ * Method implemented to comply with ArrayAccess interface, will set document's
+ * internal properties that are mapped as fields in the datasource when accessed
+ * using the array interface. This interface is a backwards compatible method for
+ * setting result data in CakePHP. This method is also able to set associated
+ * documents data using as array key the name of the associated document alias
+ * defined in the annotation
+ *
+ * ### Examples:
+ *
+ *	{{{
+ *		class User extends CakeDocument {
+ *			public $fullName;
+ * 			// @ODM\HasManyEmbedded(targetDocument="PhoneNumber", alias="PhoneNumber")
+ *			private $numbers;
+ *
+ *		}
+ *		$user['fullName'] = 'Jhon';
+ *		$user['User]['fullName']; // This is equivalent to the previous line
+ *
+ *		$user['PhoneNumber'][0] = new PhoneNumber('444-555-33');
+ *	}}}
+ *
+ *
+ * @param string $property property name to be set
+ * @param mixed $value data to be set to the property
+ * @return void
+ */
 	public function offsetSet($property, $value) {
 		$schema = $this->schema();
 		if (isset($schema[$property])) {
@@ -163,6 +284,34 @@ class CakeDocument implements ArrayAccess {
 		}
 	}
 
+/**
+ * Method implemented to comply with ArrayAccess interface, will unset document's
+ * internal properties that are mapped as fields in the datasource when accessed
+ * using the array interface. This interface is a backwards compatible method for
+ * unsetting result data in CakePHP. This method is also able to unset associated
+ * documents data using as array key the name of the associated document alias
+ * defined in the annotation
+ *
+ * ### Examples:
+ *
+ *	{{{
+ *		class User extends CakeDocument {
+ *			public $fullName;
+ * 			// @ODM\HasManyEmbedded(targetDocument="PhoneNumber", alias="PhoneNumber")
+ *			private $numbers;
+ *
+ *		}
+ *		unset($user['fullName']);
+ *		unset($user['User]['fullName']); // This is equivalent to the previous line
+ *
+ *		unset($user['PhoneNumber'][0]);
+ *	}}}
+ *
+ *
+ * @param string $property property name to be set
+ * @param mixed $value data to be set to the property
+ * @return void
+ */
 	public function offsetUnset($property) {
 		$schema = $this->schema();
 		if (isset($schema[$property])) {
@@ -170,6 +319,12 @@ class CakeDocument implements ArrayAccess {
 		}
 	}
 
+/**
+ * Auxiliary method to extract a mapped internal property
+ *
+ * @param string $property name of the property to be returned
+ * @return mixed
+ */
 	protected function extractOffset($property) {
 		if ($property == get_class($this)) {
 			return $this;
@@ -191,6 +346,11 @@ class CakeDocument implements ArrayAccess {
 		trigger_error(sprintf('Invalid offset %s', $property));
 	}
 
+/**
+ * Returns the instance of the datasource used by this class to persist and retrieve data
+ *
+ * @return CakeMongoSource
+ */
 	public function getDataSource() {
 		return ConnectionManager::getDataSource(static::$useDbConfig);
 	}
@@ -463,7 +623,7 @@ class CakeDocument implements ArrayAccess {
 	}
 
 /**
- * For all keys different to 'id' in $one, the keys and values of $one are set to
+ * For all keys different to the primaryKey in $one, the keys and values of $one are set to
  * the object properties in this document. If you provide as keys in $one names or aliases
  * for associated documents, this function will recursively set the properties on the associated objects
  *
