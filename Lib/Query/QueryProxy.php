@@ -3,13 +3,56 @@
 use Doctrine\ODM\MongoDB\DocumentManager,
 	Doctrine\ODM\MongoDB\Query\Expr;
 
+/**
+ * This class is a hybrid between a QueryBuilder and a lazy loader for query results
+ * It inherits all methods from the `Builder` class but at the same time it is able
+ * to return query results if tried to be iterated
+ *
+ * It also acts a bridge between the query API and the document itself to call custom
+ * finder methods in the Document class to add or modify any property on the active query
+ * being built.
+ *
+ * @package MongoCake.Query
+ */
 class QueryProxy extends \Doctrine\ODM\MongoDB\Query\Builder implements ArrayAccess, IteratorAggregate, Countable {
 
+/**
+ * Iterator instance
+ *
+ * @var Iterator
+ */
 	private $iterator;
+
+/**
+ * Whether the query changed after getting results from it
+ *
+ * @var boolean
+ */
 	protected $queryChanged = false;
+
+/**
+ * Name of the document associated to this query
+ * The document name will be used to connect to the correct repository
+ * to get results from it
+ *
+ * @var string
+ */
 	protected $documentName;
+
+/**
+ * List of additional arguments that needs to be passed to the last call of a custom finder in the document class
+ *
+ * @var array
+ */
 	protected $args = array();
 
+/**
+ * Magic function to acts a a bridge for calling custom finder methods in the document class
+ *
+ * @param string $method method to be called in the document class
+ * @param array $arguments list of arguments to be passed to it
+ * @return mixed
+ */
 	public function __call($method, $arguments) {
 		$class = $this->documentName;
 		if (!empty($class)) {
@@ -19,23 +62,53 @@ class QueryProxy extends \Doctrine\ODM\MongoDB\Query\Builder implements ArrayAcc
 		throw new BadMethodCallException('No class specified to call find method');
 	}
 
+/**
+ * Returns the list of arguments to be passed to the last custom finder method called
+ *
+ * @return array
+ */
 	public function getArgs() {
 		return $this->args;
 	}
 
+/**
+ * Clears the arguments array. This arguments where created from the last call to a custom finder in
+ * the document class and was managed by the magic __call() function in this class
+ *
+ * @return void
+ */
 	public function clearArgs() {
 		$this->args = array();
 	}
 
+/**
+ * Object's constructor
+ *
+ * @param DocumentManager $dm 
+ * @param Cmd $cmd 
+ * @param string $documentName 
+ */
 	public function __construct(DocumentManager $dm, $cmd, $documentName = null) {
 		$this->documentName = is_array($documentName) ? current($documentName) : $documentName;
 		parent::__construct($dm, $cmd, $documentName);
 	}
 
-	public function offsetExists($property) {
+/**
+ * Returns true if a query parameter is set
+ *
+ * @param string $property 
+ * @return boolean
+ */
+	public function oxffsetExists($property) {
 		return isset($this->query[$property]);
 	}
 
+/**
+ * Returns a query parameter
+ *
+ * @param string $property 
+ * @return mixed
+ */
 	public function offsetGet($property) {
 		if ($property === 'args') {
 			return $this->getArgs();
@@ -45,16 +118,34 @@ class QueryProxy extends \Doctrine\ODM\MongoDB\Query\Builder implements ArrayAcc
 		}
 	}
 
+/**
+ * Sets a query parameter
+ *
+ * @param string $property 
+ * @param mixed $value 
+ * @return void
+ */
 	public function offsetSet($property, $value) {
 		$this->addQueryArray(array($property => $value));
 	}
 
+/**
+ * Unsets a query parameter
+ *
+ * @param string $offset 
+ * @return void
+ */
 	public function offsetUnset($offset) {
 		if (isset($query[$property])) {
 			$this->query['property'] = null;
 		}
 	}
 
+/**
+ * Returns an iterator for the query results
+ *
+ * @return Iterator
+ */
 	public function getIterator() {
 		if ($this->queryChanged || $this->iterator === null) {
 			$iterator = $this->getQuery()->iterate();
@@ -79,14 +170,30 @@ class QueryProxy extends \Doctrine\ODM\MongoDB\Query\Builder implements ArrayAcc
         return $this->getIterator()->count($resultSetOnly);
     }
 
+/**
+ * Returns the first result for the current query
+ *
+ * @return mixed
+ */
 	public function getSingleResult() {
 		return $this->getIterator()->getSingleResult();
 	}
 
+/**
+ * Converts the query result in a plain array
+ *
+ * @return array
+ */
     public function toArray() {
         return $this->getIterator()->toArray();
     }
 
+/**
+ * Sets a CakePHP-style query options array to this object
+ *
+ * @param array $query 
+ * @return QueryProxy this instance
+ */
 	public function addQueryArray(array $query) {
 		if (!empty($query['args'])) {
 			$this->args = $query['args'];
@@ -119,6 +226,13 @@ class QueryProxy extends \Doctrine\ODM\MongoDB\Query\Builder implements ArrayAcc
 		return $this;
 	}
 
+/**
+ * Parses a CakePHP-style conditions array and sets them to
+ * this query
+ *
+ * @param array $conditions 
+ * @return QueryProxy this instance
+ */
 	public function addConditions($conditions) {
 		foreach ($conditions as $field => $value) {
 			$operator = '=';
