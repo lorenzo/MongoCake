@@ -5,7 +5,23 @@ use Doctrine\ODM\MongoDB\UnitOfWork;
 App::uses('ConnectionManager', 'Model');
 App::uses('Validation', 'Utility');
 
-class CakeDocument implements ArrayAccess {
+/**
+ * This class is meant to be an almost API compatible replacement for the 
+ * CakePHP Model class, but based on a Document database and using as datasource
+ * the CakeMongoSource class.
+ *
+ * This class uses at the same time a different paradigm in how to handle data when
+ * compared with the Model class. This one uses the data mapper patter, and mixes it
+ * a bit with the ActiveRecord one too. Each object represents an entry in the persistent
+ * storage, and has the methods to be saved, updated, and deleted; Unlike the model class
+ * where the object represents the repository and results are returned as arrays.
+ *
+ * Properties in this object are treated as properties in the persistent storage collection,
+ * and each change made on them, after using the persisting methods, will be reflected on the database.
+ *
+ * @package MongoCake.Model
+ */
+abstract class CakeDocument implements ArrayAccess {
 
 /**
  * Specifies which connection name to use for this instance
@@ -355,20 +371,57 @@ class CakeDocument implements ArrayAccess {
 		return ConnectionManager::getDataSource(static::$useDbConfig);
 	}
 
+/**
+ * Returns the document manager associated to this document's datasource
+ *
+ * @return DocumentManager
+ */
 	public function getDocumentManager() {
 		return $this->getDataSource()->getDocumentManager();
 	}
 
+/**
+ * Returns the repository associated to this document. A Repository is an object
+ * representing the collection of the same type of documents and it's mainly used
+ * for finding operations. Doctrine allows you to create your own repository classes
+ * in order to implement custom finders, although this feature is already covered
+ * by CakeDocument. You are, nevertheless, still able to create those and call the methods
+ * as described in the Doctrine Mongo ODM documentation.
+ *
+ * @return DocumentRepository
+ */
 	public function getRepository() {
 		return $this->getDocumentManager()->getRepository(get_class($this));
 	}
 
+/**
+ * Calling this function is required in order to actually persist your changes in to
+ * the data repository. Think of it as a `commit` statement, where all your previous
+ * inserts and updates are saved. Calling this method will not only flush changes for this
+ * object, but rather it will do it for all documents managed by the same DocumentManager this
+ * class is using.
+ *
+ * Do not invoke flush after every change to a document or every single invocation of save/delete
+ * it will unnecessarily reduce the performance of your application. Instead, you can call this
+ * method just after all your changes are done for the same request. 
+ *
+ * There should be usually no need for invoking flush more than 0-2 times per request.
+ *
+ * @return void
+ */
 	public function flush() {
 		try {
 			$this->getDocumentManager()->flush();
 		} catch (OperationCancelledException $e) {}
 	}
 
+/**
+ * Returns a list of fields mapped as document properties in the persistent storage.
+ * each field name will be found as an array key having as values another array of
+ * options set for the the field, such as the type, special callbacks, target document, etc.
+ *
+ * @return array
+ */
 	public function schema() {
 		if (!empty($this->_schema)) {
 			return $this->_schema;
@@ -404,10 +457,12 @@ class CakeDocument implements ArrayAccess {
 
 /**
  * This callback is fired just before the data is going to be committed into the persistent storage.
- * Keep in mind this means just after the flush() call, and not inside the save() method, so don't
+ * Keep in mind this means it will fire just after the flush() call, and not inside the save() method, so don't
  * rely on any behavior that cancels a save at this point unless you know what you are doing.
  * 
- * Returning false will cancel the persist operation.
+ * Returning false will cancel the flush operation. This basically means that the data will not be saved
+ * in the persistent storage, although the objects will not return to the original pre-save state if 
+ * cancelled
  *
  * @param boolean $isUpdate whether this operation is a create or create operation
  * @return boolean true to continue saving, false to cancel
@@ -416,13 +471,30 @@ class CakeDocument implements ArrayAccess {
 		return true;
 	}
 
-
+/**
+ * Callback fired just after the flush() operation was successful
+ * 
+ * @param boolean $isUpdate, whether this object was just created or updated
+ * @return void
+ */
 	public function afterSave($isUpdate) {}
 
+/**
+ * Callback fired just before an object is deleted when calling the flush() operation
+ * Returning false in this callback will cancel the operation
+ *
+ * @return boolean
+ */
 	public function beforeDelete() {
 		return true;
 	}
 
+/**
+ * Callback fired just after the object have been deleted from persistent storage
+ * when calling flush()
+ *
+ * @return void
+ */
 	public function afterDelete() {}
 
 /**
@@ -949,6 +1021,13 @@ class CakeDocument implements ArrayAccess {
 		return $query;
 	}
 
+/**
+ * Custom finder method to return the first result form any query
+ *
+ * @param string $state `before` ore `after`
+ * @param array|QueryProxy $query 
+ * @return CakeDocument
+ */
 	protected static function _findFirst($state, $query) {
 		if ($state == 'before') {
 			$query->limit(1);
@@ -998,6 +1077,13 @@ class CakeDocument implements ArrayAccess {
 		return $relations;
 	}
 
+/**
+ * Returns whether a field is a mapped property by the DocumentManager
+ * Mapped properties are annotated with one of the valid Doctrine's Types
+ *
+ * @param string $field 
+ * @return boolean
+ */
 	public function hasField($field) {
 		$schema = $this->schema();
 		return isset($schema[$field]);
