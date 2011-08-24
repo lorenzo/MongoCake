@@ -128,7 +128,7 @@ class CakeMongoSource extends DataSource {
 
 	public function appendQueryLog(array $log) {
 		$this->_queriesLog[] = array(
-			'query' => var_export($log, true),
+			'query' => print_r($log, true),
 			'numRows' => 0,
 			'took' => 0,
 			'affected' => 0,
