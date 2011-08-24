@@ -108,10 +108,10 @@
 		}
 		$<?php echo $singularName; ?> = <?php echo $currentModelName; ?>::find($id);
 		if (!$<?php echo $singularName; ?>) {
-			$<?php echo $singularName; ?>->flush();
 			throw new NotFoundException(__('Invalid <?php echo strtolower($singularHumanName); ?>'));
 		}
 		if ($<?php echo $singularName; ?>->delete()) {
+			$<?php echo $singularName; ?>->flush();
 <?php if ($wannaUseSession): ?>
 			$this->Session->setFlash(__('<?php echo ucfirst(strtolower($singularHumanName)); ?> deleted'));
 			$this->redirect(array('action'=>'index'));

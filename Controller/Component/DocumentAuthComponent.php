@@ -101,14 +101,23 @@ class DocumentAuthComponent extends AuthComponent {
 	}
 
 /**
+ * Returns whether the user is already logged in or not
+ *
+ * @return boolean
+ */
+	public function isLoggedIn() {
+		return (bool) CakeSession::check(static::$sessionKey);
+	}
+
+/**
  * Similar to AuthComponent::user() except if the session user cannot be found, connected authentication
  * objects will have their getUser() methods called.  This lets stateless authentication methods function correctly.
  *
  * @return boolean true if a user can be found, false if one cannot.
  */
 	protected function _getUser() {
-		$user = $this->user();
-		if ($user) {
+		$loggedIn = $this->isLoggedIn();
+		if ($loggedIn) {
 			return true;
 		}
 		if (empty($this->_authenticateObjects)) {

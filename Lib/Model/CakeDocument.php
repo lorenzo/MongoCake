@@ -744,6 +744,9 @@ abstract class CakeDocument implements ArrayAccess {
 							//Only a search or a save can set the id
 							continue;
 						}
+						if ($schema[$fieldName]['type'] == 'date') {
+							$fieldValue = $this->convertArrayToDate($fieldValue);
+						}
 						if (method_exists($this, 'set' . $fieldName)) {
 							$this->{'set' . $fieldName}($fieldValue);
 						} else {
@@ -1087,6 +1090,61 @@ abstract class CakeDocument implements ArrayAccess {
 	public function hasField($field) {
 		$schema = $this->schema();
 		return isset($schema[$field]);
+	}
+
+/**
+ * Converts a datetime array sent from the form helper into a DateTime object
+ *
+ * @param mixed $data An array or object to be deconstructed into a DateTime
+ * @return DateTime
+ */
+	public function convertArrayToDate($data) {
+		$useNewDate = (isset($data['year']) || isset($data['month']) ||
+			isset($data['day']) || isset($data['hour']) || isset($data['minute']));
+
+		$dateFields = array('Y' => 'year', 'm' => 'month', 'd' => 'day', 'H' => 'hour', 'i' => 'min', 's' => 'sec');
+		$timeFields = array('H' => 'hour', 'i' => 'min', 's' => 'sec');
+		$date = array();
+
+		if (isset($data['hour']) && isset($data['meridian']) && $data['hour'] != 12 && 'pm' == $data['meridian']) {
+			$data['hour'] = $data['hour'] + 12;
+		}
+		if (isset($data['hour']) && isset($data['meridian']) && $data['hour'] == 12 && 'am' == $data['meridian']) {
+			$data['hour'] = '00';
+		}
+	
+		foreach ($timeFields as $key => $val) {
+			if (!isset($data[$val]) || $data[$val] === '0' || $data[$val] === '00') {
+				$data[$val] = '00';
+			} elseif ($data[$val] === '') {
+				$data[$val] = '';
+			} else {
+				$data[$val] = sprintf('%02d', $data[$val]);
+			}
+			if (!empty($data[$val])) {
+				$date[$key] = $data[$val];
+			} else {
+				return null;
+			}
+		}
+
+		foreach ($dateFields as $key => $val) {
+			if ($val == 'hour' || $val == 'min' || $val == 'sec') {
+				if (!isset($data[$val]) || $data[$val] === '0' || $data[$val] === '00') {
+					$data[$val] = '00';
+				} else {
+					$data[$val] = sprintf('%02d', $data[$val]);
+				}
+			}
+			if (!isset($data[$val]) || isset($data[$val]) && (empty($data[$val]) || $data[$val][0] === '-')) {
+				return null;
+			}
+			if (isset($data[$val]) && !empty($data[$val])) {
+				$date[$key] = $data[$val];
+			}
+		}
+
+		return new DateTime($day . $hour);
 	}
 
 }
