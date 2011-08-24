@@ -99,7 +99,7 @@ class QueryProxy extends \Doctrine\ODM\MongoDB\Query\Builder implements ArrayAcc
  * @param string $property 
  * @return boolean
  */
-	public function oxffsetExists($property) {
+	public function offsetExists($property) {
 		return isset($this->query[$property]);
 	}
 
@@ -148,6 +148,7 @@ class QueryProxy extends \Doctrine\ODM\MongoDB\Query\Builder implements ArrayAcc
  */
 	public function getIterator() {
 		if ($this->queryChanged || $this->iterator === null) {
+			$this->queryChanged = false;
 			$iterator = $this->getQuery()->iterate();
 			if ($iterator !== null && !$iterator instanceof Iterator) {
 				throw new \BadMethodCallException('Query execution did not return an iterator. This query may not support returning iterators. ');

@@ -245,7 +245,7 @@ abstract class CakeDocument implements ArrayAccess {
  *	{{{
  *		class User extends CakeDocument {
  *			public $fullName;
- * 			// @ODM\HasManyEmbedded(targetDocument="PhoneNumber", alias="PhoneNumber")
+ * 			//HasManyEmbedded(targetDocument="PhoneNumber", alias="PhoneNumber")
  *			private $numbers;
  *
  *		}
@@ -278,7 +278,7 @@ abstract class CakeDocument implements ArrayAccess {
  *	{{{
  *		class User extends CakeDocument {
  *			public $fullName;
- * 			// @ODM\HasManyEmbedded(targetDocument="PhoneNumber", alias="PhoneNumber")
+ * 			//HasManyEmbedded(targetDocument="PhoneNumber", alias="PhoneNumber")
  *			private $numbers;
  *
  *		}
@@ -313,7 +313,7 @@ abstract class CakeDocument implements ArrayAccess {
  *	{{{
  *		class User extends CakeDocument {
  *			public $fullName;
- * 			// @ODM\HasManyEmbedded(targetDocument="PhoneNumber", alias="PhoneNumber")
+ * 			//HasManyEmbedded(targetDocument="PhoneNumber", alias="PhoneNumber")
  *			private $numbers;
  *
  *		}

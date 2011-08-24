@@ -41,6 +41,8 @@ class CakeMongoSource extends DataSource {
  */
 	protected $documentManager;
 
+	protected $_queriesLog = array();
+
 /**
  * Datasource constructor, creates the Configuration, Connection and DocumentManager objects
  *
@@ -55,7 +57,8 @@ class CakeMongoSource extends DataSource {
  *	- hydratorNamespace:  string representing the namespace the hydrator classes will reside in (default: `Hydrators`)
  *
  * @param arary $config 
- * @param boolean $autoConnect whether this object should attempt connection on craetion
+ * @param boolean $autoConnect whether this object should attempt connection on creation
+ * @throws MissingConnectionException if it was not possible to connect to MongoDB
  */
 	public function __construct($config = array(), $autoConnect = true) {
 		$this->_baseConfig = array(
@@ -82,8 +85,6 @@ class CakeMongoSource extends DataSource {
 			$configuration->setMetadataCacheImpl(new ApcCache());
 		}
 
-		$configuration->setLoggerCallable(function(array $log) {
-		});
 		$this->configuration = $configuration;
 		$this->connection = new Connection($server, array(), $configuration);
 		$this->documentManager = DocumentManager::create($this->connection, $configuration);
@@ -107,7 +108,51 @@ class CakeMongoSource extends DataSource {
 		} catch (Exception $e) {
 			throw new MissingConnectionException(array('class' => get_class($this)));
 		}
-		
+
+		$this->setupLogger();
+	}
+
+/**
+ * Setups a logger function fore the queries generated
+ *
+ * @return void
+ */
+	protected function setupLogger() {
+		if (Configure::read('debug') > 1) {
+			$self = $this;
+			$this->configuration->setLoggerCallable(function(array $log) use ($self) {
+				$self->appendQueryLog($log);
+			});
+		}
+	}
+
+	public function appendQueryLog(array $log) {
+		$this->_queriesLog[] = array(
+			'query' => var_export($log, true),
+			'numRows' => 0,
+			'took' => 0,
+			'affected' => 0,
+			'error' => 0
+		);
+	}
+
+/**
+ * Get the query log as an array.
+ *
+ * @param boolean $sorted Get the queries sorted by time taken, defaults to false.
+ * @param boolean $clear If True the existing log will cleared.
+ * @return array Array of queries run as an array
+ */
+	public function getLog($sorted = false, $clear = true) {
+		if ($sorted) {
+			$log = sortByKey($this->_queriesLog, 'took', 'desc', SORT_NUMERIC);
+		} else {
+			$log = $this->_queriesLog;
+		}
+		if ($clear) {
+			$this->_queriesLog = array();
+		}
+		return array('log' => $log, 'count' => count($this->_queriesLog), 'time' => 'Unknown');
 	}
 
 /**
