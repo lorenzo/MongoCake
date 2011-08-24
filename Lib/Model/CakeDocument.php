@@ -1144,6 +1144,8 @@ abstract class CakeDocument implements ArrayAccess {
 			}
 		}
 
+		$day = empty($date['Y']) ? null : $date['Y'] . '-' . $date['m'] . '-' . $date['d'] . ' ';
+		$hour = empty($date['H']) ? null : $date['H'] . ':' . $date['i'] . ':' . $date['s'];
 		return new DateTime($day . $hour);
 	}
 
