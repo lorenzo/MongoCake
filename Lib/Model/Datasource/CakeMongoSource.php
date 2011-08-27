@@ -82,6 +82,8 @@ class CakeMongoSource extends DataSource {
 		$configuration->setMetadataDriverImpl($this->_getMetadataReader($documentPaths));
 
 		if (Configure::read('debug') === 0) {
+			$configuration->setAutoGenerateHydratorClasses(false);
+			$configuration->setAutoGenerateProxyClasses(false);
 			$configuration->setMetadataCacheImpl(new ApcCache());
 		}
 

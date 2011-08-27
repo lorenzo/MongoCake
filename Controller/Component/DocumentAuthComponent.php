@@ -152,7 +152,7 @@ class DocumentAuthComponent extends AuthComponent {
  * @access private
  */
 	function __setDefaults() {
-		$result = parent::__setDefaults();
+		$result = parent::_setDefaults();
 		if (!empty($this->userModel)) {
 			list($plugin, $class) = pluginSplit($this->userModel, null, true);
 			App::uses($class, $plugin . 'Model');
