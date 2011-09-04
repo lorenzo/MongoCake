@@ -19,6 +19,7 @@ Use this MongoCake plugin like any other datasource, with its own configuration 
 	public $default = array(
 		'datasource' => 'MongoCake.CakeMongoSource',
 		'server' => 'localhost', // Optional
+		'database' => 'mydatabase', // Database to use
 	);
 
 # Models #
