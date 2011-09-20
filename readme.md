@@ -9,12 +9,17 @@ Change into your Plugin directory, and checkout the git repo:
 
 # Configuration #
 
+You first need to activate the plugin in CakePHP after placing it in the correct folder:
+
+	CakePlugin::load('MongoCake', array('bootstrap' => true));
+
 Use this MongoCake plugin like any other datasource, with its own configuration options:
 
 	// Within Config/database.php
 	public $default = array(
 		'datasource' => 'MongoCake.CakeMongoSource',
 		'server' => 'localhost', // Optional
+		'database' => 'mydatabase', // Database to use
 	);
 
 # Models #
