@@ -253,7 +253,7 @@ class CakeMongoSource extends DataSource {
 	public function prePersist(\Doctrine\ODM\MongoDB\Event\LifecycleEventArgs $eventArgs) {
 		$document = $eventArgs->getDocument();
 		$schema = $document->schema();
-		if ($document->hasField('created') && $schema['modified']['type'] == 'date') {
+		if ($document->hasField('created') && $schema['created']['type'] == 'date') {
 			$document->created = new DateTime();
 		}
 		$continue = $document->beforeSave(false);
