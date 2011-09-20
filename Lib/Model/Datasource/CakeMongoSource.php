@@ -70,6 +70,10 @@ class CakeMongoSource extends DataSource {
 			'database' => 'cake',
 			'documentPaths' => App::path('Model')
 		);
+		foreach (CakePlugin::loaded() as $plugin) {
+			$this->_baseConfig['documentPaths'] = array_merge($this->_baseConfig['documentPaths'], App::path('Model', $plugin));
+		}
+
 		parent::__construct($config);
 		extract($this->config, EXTR_OVERWRITE);
 
