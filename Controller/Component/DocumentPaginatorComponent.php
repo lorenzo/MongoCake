@@ -129,9 +129,6 @@ class DocumentPaginatorComponent extends PaginatorComponent {
 
 		if (!empty($options['order']) && is_array($options['order'])) {
 			$key = $field = key($options['order']);
-			if (strpos($key, '.') !== false) {
-				list($alias, $field) = explode('.', $key);
-			}
 			$value = $options['order'][$key];
 			unset($options['order'][$key]);
 			$options['order'][$field] = $value;
