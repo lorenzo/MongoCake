@@ -70,5 +70,21 @@ class DocumentTestFixtureTest extends CakeTestCase {
 		$this->assertEquals('444-45676', $second->phonenumbers[0]->phonenumber);
 	}
 
+	public function testDrop() {
+		$Fixture = new MongoCakeUserTestFixture($this->connection);
+		$Fixture->insert($this->connection);
+		$this->connection->commit();
+		$this->assertEquals(2, User::find('all')->count());
+		$Fixture->drop($this->connection);
+		$this->assertEquals(0, User::find('all')->count());
+	}
 
+	public function testTruncate() {
+		$Fixture = new MongoCakeUserTestFixture($this->connection);
+		$Fixture->insert($this->connection);
+		$this->connection->commit();
+		$this->assertEquals(2, User::find('all')->count());
+		$Fixture->truncate($this->connection);
+		$this->assertEquals(0, User::find('all')->count());
+	}
 }

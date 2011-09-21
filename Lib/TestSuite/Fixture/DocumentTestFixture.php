@@ -108,7 +108,7 @@ abstract class DocumentTestFixture  {
  */
 	public function truncate($db) {
 		$db->getDocumentManager()->createQueryBuilder($this->document)
-			->findAndRemove()
+			->remove()
 			->getQuery()
 			->execute();
 
