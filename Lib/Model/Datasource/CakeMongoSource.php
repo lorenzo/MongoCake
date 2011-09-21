@@ -68,7 +68,8 @@ class CakeMongoSource extends DataSource {
 			'hydratorNamespace' => 'Hydrators',
 			'server' => 'localhost',
 			'database' => 'cake',
-			'documentPaths' => App::path('Model')
+			'documentPaths' => App::path('Model'),
+			'prefix' => null //Not implemented, probably never will... Just there for compatibility
 		);
 		foreach (CakePlugin::loaded() as $plugin) {
 			$this->_baseConfig['documentPaths'] = array_merge($this->_baseConfig['documentPaths'], App::path('Model', $plugin));
@@ -339,21 +340,27 @@ class CakeMongoSource extends DataSource {
 	}
 
 /**
- * Drop a Collection
+ * Emulates a begin transaction call, it just returns without performing any action
+ * there are no transactions in mongo
  *
- * @param CakeSchema $schema Schema object
- * @param string $collection Collection name
- * @return void
- *
- * @todo We'll need to override CakeTestFixture to avoid $db->execute(...) but the implementation here is sound.
+ * @return boolean
  */
-	public function dropSchema(CakeSchema $schema, $collection = null) {
-		foreach ($schema->tables as $curTable => $columns) {
-			if (!$collection || $collection == $curTable) {
-				$this->getSchemaManager()->dropDocumentCollection($collection);
-			}
-		}
+	public function begin() {
+		return true;
 	}
+
+/**
+ * The most similar thing to a transaction commit in Doctrine is a flush()
+ * since it writes everything at once simulating what a transactions does
+ * plus it persists any unstable change in memory
+ *
+ * @return boolean
+ */
+	public function commit() {
+		$this->getDocumentManager()->flush();
+		return true;
+	}
+
 }
 
 /**
