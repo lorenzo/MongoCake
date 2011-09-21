@@ -45,7 +45,7 @@ class Phonenumber extends CakeDocument {
     }
 
 	public function shouldNotStartWith00() {
-		if ($this->phonenumber[0] === '0' && $this->phonenumber[0] === '0') {
+		if ($this->phonenumber[0] === '0' && $this->phonenumber[1] === '0') {
 			return 'The number should not start with 00';
 		}
 		return true;
