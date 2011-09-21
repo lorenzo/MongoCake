@@ -744,8 +744,14 @@ abstract class CakeDocument implements ArrayAccess {
 							//Only a search or a save can set the id
 							continue;
 						}
-						if ($schema[$fieldName]['type'] == 'date') {
-							$fieldValue = $this->convertArrayToDate($fieldValue);
+						if (isset($schema[$fieldName]['type']) && $schema[$fieldName]['type'] == 'date') {
+							if (is_array($fieldValue)) {
+								$fieldValue = $this->convertArrayToDate($fieldValue);
+							} if (is_string($fieldValue)) {
+								try {
+									$fieldValue = new DateTime($fieldValue);
+								} catch (Exception $e) {}
+							}
 						}
 						if (method_exists($this, 'set' . $fieldName)) {
 							$this->{'set' . $fieldName}($fieldValue);

@@ -27,7 +27,7 @@ abstract class DocumentTestFixture  {
  * Instantiate the fixture.
  *
  */
-	public function __construct() {
+	public function __construct($db) {
 		if ($this->name === null) {
 			if (preg_match('/^(.*)Fixture$/', get_class($this), $matches)) {
 				$this->name = $matches[1];
@@ -42,18 +42,18 @@ abstract class DocumentTestFixture  {
 		if (empty($this->plugin)) {
 			list($this->plugin, $this->document) = pluginSplit($this->document);
 		}
-		$this->init();
+		$this->init($db);
 	}
 
 /**
  * Initializes the fixture
  *
  */
-	public function init() {
+	public function init($db) {
 		$plugin = $this->plugin ? $this->plugin . '.' : null;
 		App::uses($this->document, $plugin . 'Model');
 		$documentClass = $this->document;
-		$documentClass::$useDbConfig = 'test';
+		$documentClass::$useDbConfig = Connectionmanager::getSourceName($db);
 	}
 
 /**

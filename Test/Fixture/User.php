@@ -44,6 +44,9 @@ class User extends CakeDocument {
 	/** @ODM\Date */
 	public $modified;
 
+	/** @ODM\Date */
+	public $lastSeen;
+
 	public static $useDbConfig = 'testMongo';
 
 	public static $findMethods = array(
