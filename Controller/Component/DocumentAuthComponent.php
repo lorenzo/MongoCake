@@ -16,7 +16,7 @@ class DocumentAuthComponent extends AuthComponent {
  * @link http://book.cakephp.org/view/1261/login
  */
 	public function login($user = null) {
-		$this->__setDefaults();
+		$this->_setDefaults();
 
 		if (empty($user)) {
 			$user = $this->identify($this->request, $this->response);
@@ -100,14 +100,6 @@ class DocumentAuthComponent extends AuthComponent {
 		return null;
 	}
 
-/**
- * Returns whether the user is already logged in or not
- *
- * @return boolean
- */
-	public function isLoggedIn() {
-		return (bool) CakeSession::check(static::$sessionKey);
-	}
 
 /**
  * Similar to AuthComponent::user() except if the session user cannot be found, connected authentication
@@ -116,7 +108,7 @@ class DocumentAuthComponent extends AuthComponent {
  * @return boolean true if a user can be found, false if one cannot.
  */
 	protected function _getUser() {
-		$loggedIn = $this->isLoggedIn();
+		$loggedIn = $this->loggedIn();
 		if ($loggedIn) {
 			return true;
 		}
@@ -126,6 +118,7 @@ class DocumentAuthComponent extends AuthComponent {
 		foreach ($this->_authenticateObjects as $auth) {
 			$result = $auth->getUser($this->request);
 			if (!empty($result)) {
+				static::$loggedInUser = $result;
 				return true;
 			}
 		}
@@ -136,7 +129,6 @@ class DocumentAuthComponent extends AuthComponent {
  * Check whether or not the current user has data in the session, and is considered logged in.
  *
  * @return boolean true if the user is logged in, false otherwise
- * @access public
  */
 	public function loggedIn() {
 		$user = static::user();
@@ -149,9 +141,8 @@ class DocumentAuthComponent extends AuthComponent {
  *
  * @param object $controller A reference to the instantiating controller object
  * @return boolean
- * @access private
  */
-	function __setDefaults() {
+	protected function _setDefaults() {
 		$result = parent::_setDefaults();
 		if (!empty($this->userModel)) {
 			list($plugin, $class) = pluginSplit($this->userModel, null, true);
