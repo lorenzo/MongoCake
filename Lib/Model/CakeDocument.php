@@ -176,8 +176,7 @@ abstract class CakeDocument implements ArrayAccess {
 		if ($property === 'hasAndBelongsToMany') {
 			return array();
 		}
-		$schema = $this->schema();
-		if (isset($schema[$property]) && method_exists($this, 'get' . $property)) {
+		if (method_exists($this, 'get' . $property)) {
 			return $this->{'get'.$property}();
 		}
 	}
@@ -208,8 +207,7 @@ abstract class CakeDocument implements ArrayAccess {
  * @return void
  */
 	public function __set($property, $value) {
-		$schema = $this->schema();
-		if (isset($schema[$property]) && method_exists($this, 'set' . $property)) {
+		if (method_exists($this, 'set' . $property)) {
 			$this->{'set'.$property}($value);
 		}
 	}
