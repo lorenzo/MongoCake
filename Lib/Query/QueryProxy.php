@@ -902,7 +902,7 @@ class QueryProxy extends \Doctrine\ODM\MongoDB\Query\Builder implements ArrayAcc
  */
 	public function refresh($shouldRefresh = true){
 		$this->queryChanged = true;
-		return parent::refresh($shouldHydrate);
+		return parent::refresh($shouldRefresh);
 	}
 
 /**
