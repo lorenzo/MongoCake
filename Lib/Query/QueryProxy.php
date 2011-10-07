@@ -549,7 +549,7 @@ class QueryProxy extends \Doctrine\ODM\MongoDB\Query\Builder implements ArrayAcc
  */
 	public function exists($bool) {
 		$this->queryChanged = true;
-		return parent::notEqual($bool);
+		return parent::exists($bool);
 	}
 
 /**
