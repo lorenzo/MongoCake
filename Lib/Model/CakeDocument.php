@@ -179,6 +179,9 @@ abstract class CakeDocument implements ArrayAccess {
 		if (method_exists($this, 'get' . $property)) {
 			return $this->{'get'.$property}();
 		}
+		if (isset($this->{$property})) {
+			return $this->{$property};
+		}
 	}
 
 
