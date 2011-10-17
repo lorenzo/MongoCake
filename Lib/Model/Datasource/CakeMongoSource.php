@@ -56,11 +56,12 @@ class CakeMongoSource extends DataSource {
  *	- hydratorDir: directory well the hydrator classes will be generated in (default: `TMP . 'cache'`)
  *	- hydratorNamespace:  string representing the namespace the hydrator classes will reside in (default: `Hydrators`)
  *
- * @param arary $config 
+ * @param arary $config
  * @param boolean $autoConnect whether this object should attempt connection on creation
  * @throws MissingConnectionException if it was not possible to connect to MongoDB
  */
 	public function __construct($config = array(), $autoConnect = true) {
+		$modelPaths = $this->_cleanupPaths(App::path('Model'));
 		$this->_baseConfig = array(
 			'proxyDir' => TMP . 'cache',
 			'proxyNamespace' =>'Proxies',
@@ -68,11 +69,11 @@ class CakeMongoSource extends DataSource {
 			'hydratorNamespace' => 'Hydrators',
 			'server' => 'localhost',
 			'database' => 'cake',
-			'documentPaths' => App::path('Model'),
+			'documentPaths' => $modelPaths,
 			'prefix' => null //Not implemented, probably never will... Just there for compatibility
 		);
 		foreach (CakePlugin::loaded() as $plugin) {
-			$this->_baseConfig['documentPaths'] = array_merge($this->_baseConfig['documentPaths'], App::path('Model', $plugin));
+			$this->_baseConfig['documentPaths'] = array_merge($this->_baseConfig['documentPaths'], $this->_cleanupPaths(App::path('Model', $plugin)));
 		}
 
 		parent::__construct($config);
@@ -117,6 +118,26 @@ class CakeMongoSource extends DataSource {
 		}
 
 		$this->setupLogger();
+	}
+
+/**
+ * Cleanup paths that does not exist
+ *
+ * Some Doctrine features like SchemaManager::ensureIndexes will complain about
+ * directories that does not exist but is in the search path
+ *
+ * @param array $paths List of cake model paths
+ * @return array List of cake model paths that exists
+ */
+	protected function _cleanupPaths($paths) {
+		$_paths = array();
+		foreach ($paths as $key => $path) {
+			if (!is_dir($path)) {
+				continue;
+			}
+			$_paths[] = $path;
+		}
+		return $_paths;
 	}
 
 /**
@@ -166,7 +187,7 @@ class CakeMongoSource extends DataSource {
  * Returns a new metadata reader driver to be used for configuring each of the document classes
  * found in the applications
  *
- * @param array $paths array containing a list of full path names where Document classes can be located 
+ * @param array $paths array containing a list of full path names where Document classes can be located
  * @return Driver
  */
 	protected function _getMetadataReader($paths) {
