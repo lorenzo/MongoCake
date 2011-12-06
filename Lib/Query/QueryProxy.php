@@ -113,6 +113,9 @@ class QueryProxy extends \Doctrine\ODM\MongoDB\Query\Builder implements ArrayAcc
 		if ($property === 'args') {
 			return $this->getArgs();
 		}
+		if ($property == 'order') {
+			$property = 'sort';
+		}
 		if (isset($this->query[$property])) {
 			return $this->query[$property];
 		}
@@ -677,7 +680,7 @@ class QueryProxy extends \Doctrine\ODM\MongoDB\Query\Builder implements ArrayAcc
  */
 	public function reduce($reduce) {
 		$this->queryChanged = true;
-		return parent::reduce($map);
+		return parent::reduce($reduce);
 	}
 
 /**
