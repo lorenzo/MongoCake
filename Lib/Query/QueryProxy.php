@@ -139,8 +139,8 @@ class QueryProxy extends \Doctrine\ODM\MongoDB\Query\Builder implements ArrayAcc
  * @return void
  */
 	public function offsetUnset($offset) {
-		if (isset($query[$property])) {
-			$this->query['property'] = null;
+		if (isset($query[$offset])) {
+			$this->query[$offset] = null;
 		}
 	}
 
